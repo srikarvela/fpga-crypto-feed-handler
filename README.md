@@ -357,4 +357,4 @@ fpga-crypto-feed-handler/
 
 ## 📜 License
 
-MIT License
+MIT License — see [LICENSE](LICENSE) for details.
