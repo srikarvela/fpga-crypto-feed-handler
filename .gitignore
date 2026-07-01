@@ -1,0 +1,28 @@
+# Claude Code local settings
+.claude/
+
+# Chisel / SBT build artifacts
+chisel/target/
+chisel/project/target/
+chisel/project/project/
+chisel/generated/
+chisel/.bsp/
+chisel/test_run_dir/
+
+# HLS project output
+feed_parser/
+compute_signals/
+
+# Vivado project output
+vivado/
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+python/vectors/*.bin
+python/vectors/*.json
+
+# macOS
+.DS_Store

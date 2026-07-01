@@ -64,20 +64,19 @@ class PriceLevelStore(
     when(hasMatch) {
       when(delete) {
         // Remove level and shift up
-        for (i <- 0 until depth) {
-          when(i.U >= matchPos && i.U < (depth - 1).U) {
+        for (i <- 0 until depth - 1) {
+          when(i.U >= matchPos) {
             store(i) := store(i + 1)
-          }.elsewhen(i.U === (depth - 1).U && matchPos <= (depth - 1).U) {
-            store(i).valid := false.B
           }
         }
+        store(depth - 1).valid := false.B
       }.otherwise {
         // Update size in place
         store(matchPos).size := size
       }
     }.elsewhen(!delete) {
       // Insert: shift down from insertPos, drop last entry (it falls off the end)
-      for (i <- (0 until depth).reverse) {
+      for (i <- (1 until depth).reverse) {
         when(i.U > insertPos) {
           store(i) := store(i - 1)
         }.elsewhen(i.U === insertPos) {
@@ -85,6 +84,11 @@ class PriceLevelStore(
           store(i).size  := size
           store(i).valid := true.B
         }
+      }
+      when(0.U === insertPos) {
+        store(0).price := price
+        store(0).size  := size
+        store(0).valid := true.B
       }
     }
   }
