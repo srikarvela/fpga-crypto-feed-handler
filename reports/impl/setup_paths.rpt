@@ -1,0 +1,758 @@
+Copyright 1986-2022 Xilinx, Inc. All Rights Reserved. Copyright 2022-2024 Advanced Micro Devices, Inc. All Rights Reserved.
+---------------------------------------------------------------------------------------------------------------------------------------------
+| Tool Version : Vivado v.2024.1 (win64) Build 5076996 Wed May 22 18:37:14 MDT 2024
+| Date         : Thu Sep 17 20:50:54 2026
+| Host         : SRIKARVELA8715 running 64-bit major release  (build 9200)
+| Command      : report_timing -setup -max_paths 10 -nworst 1 -file C:/feed/reports/impl/setup_paths.rpt
+| Design       : feed_handler_bd_wrapper
+| Device       : 7z020-clg400
+| Speed File   : -1  PRODUCTION 1.12 2019-11-22
+| Design State : Routed
+---------------------------------------------------------------------------------------------------------------------------------------------
+
+Timing Report
+
+Slack (VIOLATED) :        -4.624ns  (required time - arrival time)
+  Source:                 feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[0]/C
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[12]/CE
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_fpga_0 rise@4.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        8.160ns  (logic 2.074ns (25.417%)  route 6.086ns (74.582%))
+  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=2 LUT5=1 LUT6=2)
+  Clock Path Skew:        -0.189ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.659ns = ( 6.659 - 4.000 ) 
+    Source Clock Delay      (SCD):    2.963ns
+    Clock Pessimism Removal (CPR):    0.115ns
+  Clock Uncertainty:      0.070ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.120ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.193     1.193    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.101     1.294 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.669     2.963    feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/ap_clk
+    SLICE_X41Y48         FDRE                                         r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[0]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X41Y48         FDRE (Prop_fdre_C_Q)         0.456     3.419 r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[0]/Q
+                         net (fo=76, routed)          1.391     4.810    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/s_axis_tdata[0]
+    SLICE_X47Y56         LUT4 (Prop_lut4_I1_O)        0.124     4.934 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_433__0/O
+                         net (fo=1, routed)           0.000     4.934    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_433__0_n_0
+    SLICE_X47Y56         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.532     5.466 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_353__0/CO[3]
+                         net (fo=1, routed)           0.000     5.466    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_353__0_n_0
+    SLICE_X47Y57         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.580 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_256__0/CO[3]
+                         net (fo=1, routed)           0.000     5.580    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_256__0_n_0
+    SLICE_X47Y58         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.694 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_147__0/CO[3]
+                         net (fo=1, routed)           0.000     5.694    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_147__0_n_0
+    SLICE_X47Y59         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.808 f  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_48__0/CO[3]
+                         net (fo=2, routed)           0.908     6.716    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/insertBefore_70
+    SLICE_X45Y55         LUT2 (Prop_lut2_I0_O)        0.124     6.840 f  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_36__0/O
+                         net (fo=2, routed)           0.651     7.491    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_36__0_n_0
+    SLICE_X45Y54         LUT6 (Prop_lut6_I2_O)        0.124     7.615 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_11/O
+                         net (fo=1, routed)           0.498     8.113    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_11_n_0
+    SLICE_X48Y59         LUT6 (Prop_lut6_I0_O)        0.124     8.237 f  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_4__0/O
+                         net (fo=83, routed)          1.088     9.325    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/insertPos[0]
+    SLICE_X41Y55         LUT4 (Prop_lut4_I1_O)        0.124     9.449 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_price[31]_i_3__0/O
+                         net (fo=2, routed)           0.669    10.118    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_price[31]_i_3__0_n_0
+    SLICE_X38Y48         LUT5 (Prop_lut5_I2_O)        0.124    10.242 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size[31]_i_1__0/O
+                         net (fo=32, routed)          0.880    11.123    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size
+    SLICE_X33Y51         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[12]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                      4.000     4.000 r  
+    PS7_X0Y0             PS7                          0.000     4.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.088     5.088    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.091     5.179 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.480     6.659    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/aclk
+    SLICE_X33Y51         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[12]/C
+                         clock pessimism              0.115     6.774    
+                         clock uncertainty           -0.070     6.704    
+    SLICE_X33Y51         FDRE (Setup_fdre_C_CE)      -0.205     6.499    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[12]
+  -------------------------------------------------------------------
+                         required time                          6.499    
+                         arrival time                         -11.123    
+  -------------------------------------------------------------------
+                         slack                                 -4.624    
+
+Slack (VIOLATED) :        -4.624ns  (required time - arrival time)
+  Source:                 feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[0]/C
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[23]/CE
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_fpga_0 rise@4.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        8.160ns  (logic 2.074ns (25.417%)  route 6.086ns (74.582%))
+  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=2 LUT5=1 LUT6=2)
+  Clock Path Skew:        -0.189ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.659ns = ( 6.659 - 4.000 ) 
+    Source Clock Delay      (SCD):    2.963ns
+    Clock Pessimism Removal (CPR):    0.115ns
+  Clock Uncertainty:      0.070ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.120ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.193     1.193    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.101     1.294 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.669     2.963    feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/ap_clk
+    SLICE_X41Y48         FDRE                                         r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[0]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X41Y48         FDRE (Prop_fdre_C_Q)         0.456     3.419 r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[0]/Q
+                         net (fo=76, routed)          1.391     4.810    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/s_axis_tdata[0]
+    SLICE_X47Y56         LUT4 (Prop_lut4_I1_O)        0.124     4.934 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_433__0/O
+                         net (fo=1, routed)           0.000     4.934    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_433__0_n_0
+    SLICE_X47Y56         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.532     5.466 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_353__0/CO[3]
+                         net (fo=1, routed)           0.000     5.466    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_353__0_n_0
+    SLICE_X47Y57         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.580 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_256__0/CO[3]
+                         net (fo=1, routed)           0.000     5.580    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_256__0_n_0
+    SLICE_X47Y58         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.694 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_147__0/CO[3]
+                         net (fo=1, routed)           0.000     5.694    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_147__0_n_0
+    SLICE_X47Y59         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.808 f  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_48__0/CO[3]
+                         net (fo=2, routed)           0.908     6.716    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/insertBefore_70
+    SLICE_X45Y55         LUT2 (Prop_lut2_I0_O)        0.124     6.840 f  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_36__0/O
+                         net (fo=2, routed)           0.651     7.491    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_36__0_n_0
+    SLICE_X45Y54         LUT6 (Prop_lut6_I2_O)        0.124     7.615 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_11/O
+                         net (fo=1, routed)           0.498     8.113    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_11_n_0
+    SLICE_X48Y59         LUT6 (Prop_lut6_I0_O)        0.124     8.237 f  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_4__0/O
+                         net (fo=83, routed)          1.088     9.325    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/insertPos[0]
+    SLICE_X41Y55         LUT4 (Prop_lut4_I1_O)        0.124     9.449 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_price[31]_i_3__0/O
+                         net (fo=2, routed)           0.669    10.118    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_price[31]_i_3__0_n_0
+    SLICE_X38Y48         LUT5 (Prop_lut5_I2_O)        0.124    10.242 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size[31]_i_1__0/O
+                         net (fo=32, routed)          0.880    11.123    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size
+    SLICE_X33Y51         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[23]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                      4.000     4.000 r  
+    PS7_X0Y0             PS7                          0.000     4.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.088     5.088    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.091     5.179 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.480     6.659    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/aclk
+    SLICE_X33Y51         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[23]/C
+                         clock pessimism              0.115     6.774    
+                         clock uncertainty           -0.070     6.704    
+    SLICE_X33Y51         FDRE (Setup_fdre_C_CE)      -0.205     6.499    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[23]
+  -------------------------------------------------------------------
+                         required time                          6.499    
+                         arrival time                         -11.123    
+  -------------------------------------------------------------------
+                         slack                                 -4.624    
+
+Slack (VIOLATED) :        -4.624ns  (required time - arrival time)
+  Source:                 feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[0]/C
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[24]/CE
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_fpga_0 rise@4.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        8.160ns  (logic 2.074ns (25.417%)  route 6.086ns (74.582%))
+  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=2 LUT5=1 LUT6=2)
+  Clock Path Skew:        -0.189ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.659ns = ( 6.659 - 4.000 ) 
+    Source Clock Delay      (SCD):    2.963ns
+    Clock Pessimism Removal (CPR):    0.115ns
+  Clock Uncertainty:      0.070ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.120ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.193     1.193    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.101     1.294 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.669     2.963    feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/ap_clk
+    SLICE_X41Y48         FDRE                                         r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[0]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X41Y48         FDRE (Prop_fdre_C_Q)         0.456     3.419 r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[0]/Q
+                         net (fo=76, routed)          1.391     4.810    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/s_axis_tdata[0]
+    SLICE_X47Y56         LUT4 (Prop_lut4_I1_O)        0.124     4.934 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_433__0/O
+                         net (fo=1, routed)           0.000     4.934    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_433__0_n_0
+    SLICE_X47Y56         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.532     5.466 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_353__0/CO[3]
+                         net (fo=1, routed)           0.000     5.466    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_353__0_n_0
+    SLICE_X47Y57         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.580 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_256__0/CO[3]
+                         net (fo=1, routed)           0.000     5.580    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_256__0_n_0
+    SLICE_X47Y58         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.694 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_147__0/CO[3]
+                         net (fo=1, routed)           0.000     5.694    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_147__0_n_0
+    SLICE_X47Y59         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.808 f  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_48__0/CO[3]
+                         net (fo=2, routed)           0.908     6.716    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/insertBefore_70
+    SLICE_X45Y55         LUT2 (Prop_lut2_I0_O)        0.124     6.840 f  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_36__0/O
+                         net (fo=2, routed)           0.651     7.491    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_36__0_n_0
+    SLICE_X45Y54         LUT6 (Prop_lut6_I2_O)        0.124     7.615 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_11/O
+                         net (fo=1, routed)           0.498     8.113    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_11_n_0
+    SLICE_X48Y59         LUT6 (Prop_lut6_I0_O)        0.124     8.237 f  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_4__0/O
+                         net (fo=83, routed)          1.088     9.325    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/insertPos[0]
+    SLICE_X41Y55         LUT4 (Prop_lut4_I1_O)        0.124     9.449 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_price[31]_i_3__0/O
+                         net (fo=2, routed)           0.669    10.118    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_price[31]_i_3__0_n_0
+    SLICE_X38Y48         LUT5 (Prop_lut5_I2_O)        0.124    10.242 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size[31]_i_1__0/O
+                         net (fo=32, routed)          0.880    11.123    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size
+    SLICE_X33Y51         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[24]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                      4.000     4.000 r  
+    PS7_X0Y0             PS7                          0.000     4.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.088     5.088    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.091     5.179 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.480     6.659    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/aclk
+    SLICE_X33Y51         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[24]/C
+                         clock pessimism              0.115     6.774    
+                         clock uncertainty           -0.070     6.704    
+    SLICE_X33Y51         FDRE (Setup_fdre_C_CE)      -0.205     6.499    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[24]
+  -------------------------------------------------------------------
+                         required time                          6.499    
+                         arrival time                         -11.123    
+  -------------------------------------------------------------------
+                         slack                                 -4.624    
+
+Slack (VIOLATED) :        -4.624ns  (required time - arrival time)
+  Source:                 feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[0]/C
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[9]/CE
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_fpga_0 rise@4.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        8.160ns  (logic 2.074ns (25.417%)  route 6.086ns (74.582%))
+  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=2 LUT5=1 LUT6=2)
+  Clock Path Skew:        -0.189ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.659ns = ( 6.659 - 4.000 ) 
+    Source Clock Delay      (SCD):    2.963ns
+    Clock Pessimism Removal (CPR):    0.115ns
+  Clock Uncertainty:      0.070ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.120ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.193     1.193    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.101     1.294 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.669     2.963    feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/ap_clk
+    SLICE_X41Y48         FDRE                                         r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[0]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X41Y48         FDRE (Prop_fdre_C_Q)         0.456     3.419 r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[0]/Q
+                         net (fo=76, routed)          1.391     4.810    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/s_axis_tdata[0]
+    SLICE_X47Y56         LUT4 (Prop_lut4_I1_O)        0.124     4.934 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_433__0/O
+                         net (fo=1, routed)           0.000     4.934    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_433__0_n_0
+    SLICE_X47Y56         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.532     5.466 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_353__0/CO[3]
+                         net (fo=1, routed)           0.000     5.466    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_353__0_n_0
+    SLICE_X47Y57         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.580 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_256__0/CO[3]
+                         net (fo=1, routed)           0.000     5.580    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_256__0_n_0
+    SLICE_X47Y58         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.694 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_147__0/CO[3]
+                         net (fo=1, routed)           0.000     5.694    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_147__0_n_0
+    SLICE_X47Y59         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.808 f  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price_reg[31]_i_48__0/CO[3]
+                         net (fo=2, routed)           0.908     6.716    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/insertBefore_70
+    SLICE_X45Y55         LUT2 (Prop_lut2_I0_O)        0.124     6.840 f  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_36__0/O
+                         net (fo=2, routed)           0.651     7.491    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_36__0_n_0
+    SLICE_X45Y54         LUT6 (Prop_lut6_I2_O)        0.124     7.615 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_11/O
+                         net (fo=1, routed)           0.498     8.113    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_11_n_0
+    SLICE_X48Y59         LUT6 (Prop_lut6_I0_O)        0.124     8.237 f  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_9_price[31]_i_4__0/O
+                         net (fo=83, routed)          1.088     9.325    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/insertPos[0]
+    SLICE_X41Y55         LUT4 (Prop_lut4_I1_O)        0.124     9.449 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_price[31]_i_3__0/O
+                         net (fo=2, routed)           0.669    10.118    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_price[31]_i_3__0_n_0
+    SLICE_X38Y48         LUT5 (Prop_lut5_I2_O)        0.124    10.242 r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size[31]_i_1__0/O
+                         net (fo=32, routed)          0.880    11.123    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size
+    SLICE_X33Y51         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[9]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                      4.000     4.000 r  
+    PS7_X0Y0             PS7                          0.000     4.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.088     5.088    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.091     5.179 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.480     6.659    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/aclk
+    SLICE_X33Y51         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[9]/C
+                         clock pessimism              0.115     6.774    
+                         clock uncertainty           -0.070     6.704    
+    SLICE_X33Y51         FDRE (Setup_fdre_C_CE)      -0.205     6.499    feed_handler_bd_i/orderbook_0/inst/u_book/askStore/store_0_size_reg[9]
+  -------------------------------------------------------------------
+                         required time                          6.499    
+                         arrival time                         -11.123    
+  -------------------------------------------------------------------
+                         slack                                 -4.624    
+
+Slack (VIOLATED) :        -4.584ns  (required time - arrival time)
+  Source:                 feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/C
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size_reg[15]/CE
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_fpga_0 rise@4.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        8.152ns  (logic 2.154ns (26.422%)  route 5.998ns (73.578%))
+  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=3 LUT5=1 LUT6=1)
+  Clock Path Skew:        -0.157ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.674ns = ( 6.674 - 4.000 ) 
+    Source Clock Delay      (SCD):    2.946ns
+    Clock Pessimism Removal (CPR):    0.115ns
+  Clock Uncertainty:      0.070ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.120ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.193     1.193    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.101     1.294 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.652     2.946    feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/ap_clk
+    SLICE_X42Y52         FDRE                                         r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X42Y52         FDRE (Prop_fdre_C_Q)         0.518     3.464 r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/Q
+                         net (fo=76, routed)          1.409     4.873    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/s_axis_tdata[2]
+    SLICE_X44Y48         LUT4 (Prop_lut4_I0_O)        0.124     4.997 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_401/O
+                         net (fo=1, routed)           0.000     4.997    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_401_n_0
+    SLICE_X44Y48         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.550     5.547 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_317/CO[3]
+                         net (fo=1, routed)           0.000     5.547    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_317_n_0
+    SLICE_X44Y49         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.661 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_220/CO[3]
+                         net (fo=1, routed)           0.001     5.662    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_220_n_0
+    SLICE_X44Y50         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.776 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_111/CO[3]
+                         net (fo=1, routed)           0.000     5.776    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_111_n_0
+    SLICE_X44Y51         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.890 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_49/CO[3]
+                         net (fo=3, routed)           0.898     6.788    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/insertBefore_40
+    SLICE_X45Y48         LUT4 (Prop_lut4_I1_O)        0.124     6.912 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_24/O
+                         net (fo=2, routed)           1.108     8.020    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_24_n_0
+    SLICE_X49Y44         LUT6 (Prop_lut6_I0_O)        0.124     8.144 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_7/O
+                         net (fo=149, routed)         0.517     8.660    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/insertPos[3]
+    SLICE_X51Y45         LUT2 (Prop_lut2_I1_O)        0.124     8.784 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_price[31]_i_5/O
+                         net (fo=71, routed)          0.576     9.360    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_price[31]_i_5_n_0
+    SLICE_X48Y44         LUT4 (Prop_lut4_I2_O)        0.124     9.484 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_3/O
+                         net (fo=2, routed)           0.803    10.287    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_3_n_0
+    SLICE_X38Y43         LUT5 (Prop_lut5_I2_O)        0.124    10.411 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size[31]_i_1/O
+                         net (fo=32, routed)          0.687    11.098    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size
+    SLICE_X37Y46         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size_reg[15]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                      4.000     4.000 r  
+    PS7_X0Y0             PS7                          0.000     4.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.088     5.088    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.091     5.179 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.495     6.674    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/aclk
+    SLICE_X37Y46         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size_reg[15]/C
+                         clock pessimism              0.115     6.789    
+                         clock uncertainty           -0.070     6.720    
+    SLICE_X37Y46         FDRE (Setup_fdre_C_CE)      -0.205     6.515    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size_reg[15]
+  -------------------------------------------------------------------
+                         required time                          6.515    
+                         arrival time                         -11.098    
+  -------------------------------------------------------------------
+                         slack                                 -4.584    
+
+Slack (VIOLATED) :        -4.584ns  (required time - arrival time)
+  Source:                 feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/C
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size_reg[22]/CE
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_fpga_0 rise@4.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        8.152ns  (logic 2.154ns (26.422%)  route 5.998ns (73.578%))
+  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=3 LUT5=1 LUT6=1)
+  Clock Path Skew:        -0.157ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.674ns = ( 6.674 - 4.000 ) 
+    Source Clock Delay      (SCD):    2.946ns
+    Clock Pessimism Removal (CPR):    0.115ns
+  Clock Uncertainty:      0.070ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.120ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.193     1.193    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.101     1.294 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.652     2.946    feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/ap_clk
+    SLICE_X42Y52         FDRE                                         r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X42Y52         FDRE (Prop_fdre_C_Q)         0.518     3.464 r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/Q
+                         net (fo=76, routed)          1.409     4.873    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/s_axis_tdata[2]
+    SLICE_X44Y48         LUT4 (Prop_lut4_I0_O)        0.124     4.997 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_401/O
+                         net (fo=1, routed)           0.000     4.997    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_401_n_0
+    SLICE_X44Y48         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.550     5.547 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_317/CO[3]
+                         net (fo=1, routed)           0.000     5.547    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_317_n_0
+    SLICE_X44Y49         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.661 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_220/CO[3]
+                         net (fo=1, routed)           0.001     5.662    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_220_n_0
+    SLICE_X44Y50         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.776 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_111/CO[3]
+                         net (fo=1, routed)           0.000     5.776    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_111_n_0
+    SLICE_X44Y51         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.890 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_49/CO[3]
+                         net (fo=3, routed)           0.898     6.788    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/insertBefore_40
+    SLICE_X45Y48         LUT4 (Prop_lut4_I1_O)        0.124     6.912 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_24/O
+                         net (fo=2, routed)           1.108     8.020    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_24_n_0
+    SLICE_X49Y44         LUT6 (Prop_lut6_I0_O)        0.124     8.144 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_7/O
+                         net (fo=149, routed)         0.517     8.660    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/insertPos[3]
+    SLICE_X51Y45         LUT2 (Prop_lut2_I1_O)        0.124     8.784 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_price[31]_i_5/O
+                         net (fo=71, routed)          0.576     9.360    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_price[31]_i_5_n_0
+    SLICE_X48Y44         LUT4 (Prop_lut4_I2_O)        0.124     9.484 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_3/O
+                         net (fo=2, routed)           0.803    10.287    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_3_n_0
+    SLICE_X38Y43         LUT5 (Prop_lut5_I2_O)        0.124    10.411 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size[31]_i_1/O
+                         net (fo=32, routed)          0.687    11.098    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size
+    SLICE_X37Y46         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size_reg[22]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                      4.000     4.000 r  
+    PS7_X0Y0             PS7                          0.000     4.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.088     5.088    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.091     5.179 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.495     6.674    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/aclk
+    SLICE_X37Y46         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size_reg[22]/C
+                         clock pessimism              0.115     6.789    
+                         clock uncertainty           -0.070     6.720    
+    SLICE_X37Y46         FDRE (Setup_fdre_C_CE)      -0.205     6.515    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size_reg[22]
+  -------------------------------------------------------------------
+                         required time                          6.515    
+                         arrival time                         -11.098    
+  -------------------------------------------------------------------
+                         slack                                 -4.584    
+
+Slack (VIOLATED) :        -4.584ns  (required time - arrival time)
+  Source:                 feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/C
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size_reg[25]/CE
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_fpga_0 rise@4.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        8.152ns  (logic 2.154ns (26.422%)  route 5.998ns (73.578%))
+  Logic Levels:           10  (CARRY4=4 LUT2=1 LUT4=3 LUT5=1 LUT6=1)
+  Clock Path Skew:        -0.157ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.674ns = ( 6.674 - 4.000 ) 
+    Source Clock Delay      (SCD):    2.946ns
+    Clock Pessimism Removal (CPR):    0.115ns
+  Clock Uncertainty:      0.070ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.120ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.193     1.193    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.101     1.294 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.652     2.946    feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/ap_clk
+    SLICE_X42Y52         FDRE                                         r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X42Y52         FDRE (Prop_fdre_C_Q)         0.518     3.464 r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/Q
+                         net (fo=76, routed)          1.409     4.873    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/s_axis_tdata[2]
+    SLICE_X44Y48         LUT4 (Prop_lut4_I0_O)        0.124     4.997 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_401/O
+                         net (fo=1, routed)           0.000     4.997    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_401_n_0
+    SLICE_X44Y48         CARRY4 (Prop_carry4_S[1]_CO[3])
+                                                      0.550     5.547 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_317/CO[3]
+                         net (fo=1, routed)           0.000     5.547    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_317_n_0
+    SLICE_X44Y49         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.661 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_220/CO[3]
+                         net (fo=1, routed)           0.001     5.662    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_220_n_0
+    SLICE_X44Y50         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.776 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_111/CO[3]
+                         net (fo=1, routed)           0.000     5.776    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_111_n_0
+    SLICE_X44Y51         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.890 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price_reg[31]_i_49/CO[3]
+                         net (fo=3, routed)           0.898     6.788    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/insertBefore_40
+    SLICE_X45Y48         LUT4 (Prop_lut4_I1_O)        0.124     6.912 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_24/O
+                         net (fo=2, routed)           1.108     8.020    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_24_n_0
+    SLICE_X49Y44         LUT6 (Prop_lut6_I0_O)        0.124     8.144 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_9_price[31]_i_7/O
+                         net (fo=149, routed)         0.517     8.660    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/insertPos[3]
+    SLICE_X51Y45         LUT2 (Prop_lut2_I1_O)        0.124     8.784 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_price[31]_i_5/O
+                         net (fo=71, routed)          0.576     9.360    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_price[31]_i_5_n_0
+    SLICE_X48Y44         LUT4 (Prop_lut4_I2_O)        0.124     9.484 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_3/O
+                         net (fo=2, routed)           0.803    10.287    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_3_n_0
+    SLICE_X38Y43         LUT5 (Prop_lut5_I2_O)        0.124    10.411 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size[31]_i_1/O
+                         net (fo=32, routed)          0.687    11.098    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size
+    SLICE_X37Y46         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size_reg[25]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                      4.000     4.000 r  
+    PS7_X0Y0             PS7                          0.000     4.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.088     5.088    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.091     5.179 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.495     6.674    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/aclk
+    SLICE_X37Y46         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size_reg[25]/C
+                         clock pessimism              0.115     6.789    
+                         clock uncertainty           -0.070     6.720    
+    SLICE_X37Y46         FDRE (Setup_fdre_C_CE)      -0.205     6.515    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_size_reg[25]
+  -------------------------------------------------------------------
+                         required time                          6.515    
+                         arrival time                         -11.098    
+  -------------------------------------------------------------------
+                         slack                                 -4.584    
+
+Slack (VIOLATED) :        -4.494ns  (required time - arrival time)
+  Source:                 feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/C
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size_reg[17]/CE
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_fpga_0 rise@4.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        8.045ns  (logic 2.325ns (28.899%)  route 5.720ns (71.101%))
+  Logic Levels:           9  (CARRY4=3 LUT5=2 LUT6=4)
+  Clock Path Skew:        -0.175ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.656ns = ( 6.656 - 4.000 ) 
+    Source Clock Delay      (SCD):    2.946ns
+    Clock Pessimism Removal (CPR):    0.115ns
+  Clock Uncertainty:      0.070ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.120ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.193     1.193    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.101     1.294 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.652     2.946    feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/ap_clk
+    SLICE_X42Y52         FDRE                                         r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X42Y52         FDRE (Prop_fdre_C_Q)         0.518     3.464 r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/Q
+                         net (fo=76, routed)          1.271     4.735    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/s_axis_tdata[2]
+    SLICE_X45Y45         LUT6 (Prop_lut6_I2_O)        0.124     4.859 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price[31]_i_67/O
+                         net (fo=1, routed)           0.000     4.859    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price[31]_i_67_n_0
+    SLICE_X45Y45         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.532     5.391 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_47/CO[3]
+                         net (fo=1, routed)           0.000     5.391    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_47_n_0
+    SLICE_X45Y46         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.505 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_28/CO[3]
+                         net (fo=1, routed)           0.000     5.505    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_28_n_0
+    SLICE_X45Y47         CARRY4 (Prop_carry4_CI_CO[2])
+                                                      0.228     5.733 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_15/CO[2]
+                         net (fo=3, routed)           0.977     6.710    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/matchIdx_10
+    SLICE_X46Y53         LUT6 (Prop_lut6_I3_O)        0.313     7.023 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_7/O
+                         net (fo=1, routed)           0.779     7.802    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_7_n_0
+    SLICE_X47Y48         LUT6 (Prop_lut6_I3_O)        0.124     7.926 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_5/O
+                         net (fo=1, routed)           0.439     8.365    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_5_n_0
+    SLICE_X47Y45         LUT6 (Prop_lut6_I0_O)        0.124     8.489 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_4/O
+                         net (fo=19, routed)          1.136     9.626    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/matchPos[0]
+    SLICE_X50Y39         LUT5 (Prop_lut5_I2_O)        0.124     9.750 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size[31]_i_3/O
+                         net (fo=1, routed)           0.432    10.182    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size[31]_i_3_n_0
+    SLICE_X50Y38         LUT5 (Prop_lut5_I4_O)        0.124    10.306 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size[31]_i_1/O
+                         net (fo=32, routed)          0.685    10.991    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size
+    SLICE_X51Y35         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size_reg[17]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                      4.000     4.000 r  
+    PS7_X0Y0             PS7                          0.000     4.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.088     5.088    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.091     5.179 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.477     6.656    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/aclk
+    SLICE_X51Y35         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size_reg[17]/C
+                         clock pessimism              0.115     6.771    
+                         clock uncertainty           -0.070     6.702    
+    SLICE_X51Y35         FDRE (Setup_fdre_C_CE)      -0.205     6.497    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size_reg[17]
+  -------------------------------------------------------------------
+                         required time                          6.497    
+                         arrival time                         -10.991    
+  -------------------------------------------------------------------
+                         slack                                 -4.494    
+
+Slack (VIOLATED) :        -4.494ns  (required time - arrival time)
+  Source:                 feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/C
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size_reg[19]/CE
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_fpga_0 rise@4.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        8.045ns  (logic 2.325ns (28.899%)  route 5.720ns (71.101%))
+  Logic Levels:           9  (CARRY4=3 LUT5=2 LUT6=4)
+  Clock Path Skew:        -0.175ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.656ns = ( 6.656 - 4.000 ) 
+    Source Clock Delay      (SCD):    2.946ns
+    Clock Pessimism Removal (CPR):    0.115ns
+  Clock Uncertainty:      0.070ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.120ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.193     1.193    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.101     1.294 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.652     2.946    feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/ap_clk
+    SLICE_X42Y52         FDRE                                         r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X42Y52         FDRE (Prop_fdre_C_Q)         0.518     3.464 r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/Q
+                         net (fo=76, routed)          1.271     4.735    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/s_axis_tdata[2]
+    SLICE_X45Y45         LUT6 (Prop_lut6_I2_O)        0.124     4.859 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price[31]_i_67/O
+                         net (fo=1, routed)           0.000     4.859    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price[31]_i_67_n_0
+    SLICE_X45Y45         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.532     5.391 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_47/CO[3]
+                         net (fo=1, routed)           0.000     5.391    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_47_n_0
+    SLICE_X45Y46         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.505 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_28/CO[3]
+                         net (fo=1, routed)           0.000     5.505    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_28_n_0
+    SLICE_X45Y47         CARRY4 (Prop_carry4_CI_CO[2])
+                                                      0.228     5.733 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_15/CO[2]
+                         net (fo=3, routed)           0.977     6.710    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/matchIdx_10
+    SLICE_X46Y53         LUT6 (Prop_lut6_I3_O)        0.313     7.023 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_7/O
+                         net (fo=1, routed)           0.779     7.802    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_7_n_0
+    SLICE_X47Y48         LUT6 (Prop_lut6_I3_O)        0.124     7.926 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_5/O
+                         net (fo=1, routed)           0.439     8.365    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_5_n_0
+    SLICE_X47Y45         LUT6 (Prop_lut6_I0_O)        0.124     8.489 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_4/O
+                         net (fo=19, routed)          1.136     9.626    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/matchPos[0]
+    SLICE_X50Y39         LUT5 (Prop_lut5_I2_O)        0.124     9.750 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size[31]_i_3/O
+                         net (fo=1, routed)           0.432    10.182    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size[31]_i_3_n_0
+    SLICE_X50Y38         LUT5 (Prop_lut5_I4_O)        0.124    10.306 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size[31]_i_1/O
+                         net (fo=32, routed)          0.685    10.991    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size
+    SLICE_X51Y35         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size_reg[19]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                      4.000     4.000 r  
+    PS7_X0Y0             PS7                          0.000     4.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.088     5.088    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.091     5.179 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.477     6.656    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/aclk
+    SLICE_X51Y35         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size_reg[19]/C
+                         clock pessimism              0.115     6.771    
+                         clock uncertainty           -0.070     6.702    
+    SLICE_X51Y35         FDRE (Setup_fdre_C_CE)      -0.205     6.497    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size_reg[19]
+  -------------------------------------------------------------------
+                         required time                          6.497    
+                         arrival time                         -10.991    
+  -------------------------------------------------------------------
+                         slack                                 -4.494    
+
+Slack (VIOLATED) :        -4.494ns  (required time - arrival time)
+  Source:                 feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/C
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Destination:            feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size_reg[3]/CE
+                            (rising edge-triggered cell FDRE clocked by clk_fpga_0  {rise@0.000ns fall@2.000ns period=4.000ns})
+  Path Group:             clk_fpga_0
+  Path Type:              Setup (Max at Slow Process Corner)
+  Requirement:            4.000ns  (clk_fpga_0 rise@4.000ns - clk_fpga_0 rise@0.000ns)
+  Data Path Delay:        8.045ns  (logic 2.325ns (28.899%)  route 5.720ns (71.101%))
+  Logic Levels:           9  (CARRY4=3 LUT5=2 LUT6=4)
+  Clock Path Skew:        -0.175ns (DCD - SCD + CPR)
+    Destination Clock Delay (DCD):    2.656ns = ( 6.656 - 4.000 ) 
+    Source Clock Delay      (SCD):    2.946ns
+    Clock Pessimism Removal (CPR):    0.115ns
+  Clock Uncertainty:      0.070ns  ((TSJ^2 + TIJ^2)^1/2 + DJ) / 2 + PE
+    Total System Jitter     (TSJ):    0.071ns
+    Total Input Jitter      (TIJ):    0.120ns
+    Discrete Jitter          (DJ):    0.000ns
+    Phase Error              (PE):    0.000ns
+
+    Location             Delay type                Incr(ns)  Path(ns)    Netlist Resource(s)
+  -------------------------------------------------------------------    -------------------
+                         (clock clk_fpga_0 rise edge)
+                                                      0.000     0.000 r  
+    PS7_X0Y0             PS7                          0.000     0.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.193     1.193    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.101     1.294 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.652     2.946    feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/ap_clk
+    SLICE_X42Y52         FDRE                                         r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/C
+  -------------------------------------------------------------------    -------------------
+    SLICE_X42Y52         FDRE (Prop_fdre_C_Q)         0.518     3.464 r  feed_handler_bd_i/feed_parser_0/inst/regslice_both_out_msgs_U/data_p1_reg[2]/Q
+                         net (fo=76, routed)          1.271     4.735    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/s_axis_tdata[2]
+    SLICE_X45Y45         LUT6 (Prop_lut6_I2_O)        0.124     4.859 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price[31]_i_67/O
+                         net (fo=1, routed)           0.000     4.859    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price[31]_i_67_n_0
+    SLICE_X45Y45         CARRY4 (Prop_carry4_S[0]_CO[3])
+                                                      0.532     5.391 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_47/CO[3]
+                         net (fo=1, routed)           0.000     5.391    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_47_n_0
+    SLICE_X45Y46         CARRY4 (Prop_carry4_CI_CO[3])
+                                                      0.114     5.505 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_28/CO[3]
+                         net (fo=1, routed)           0.000     5.505    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_28_n_0
+    SLICE_X45Y47         CARRY4 (Prop_carry4_CI_CO[2])
+                                                      0.228     5.733 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_7_price_reg[31]_i_15/CO[2]
+                         net (fo=3, routed)           0.977     6.710    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/matchIdx_10
+    SLICE_X46Y53         LUT6 (Prop_lut6_I3_O)        0.313     7.023 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_7/O
+                         net (fo=1, routed)           0.779     7.802    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_7_n_0
+    SLICE_X47Y48         LUT6 (Prop_lut6_I3_O)        0.124     7.926 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_5/O
+                         net (fo=1, routed)           0.439     8.365    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_5_n_0
+    SLICE_X47Y45         LUT6 (Prop_lut6_I0_O)        0.124     8.489 f  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_0_price[31]_i_4/O
+                         net (fo=19, routed)          1.136     9.626    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/matchPos[0]
+    SLICE_X50Y39         LUT5 (Prop_lut5_I2_O)        0.124     9.750 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size[31]_i_3/O
+                         net (fo=1, routed)           0.432    10.182    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size[31]_i_3_n_0
+    SLICE_X50Y38         LUT5 (Prop_lut5_I4_O)        0.124    10.306 r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size[31]_i_1/O
+                         net (fo=32, routed)          0.685    10.991    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size
+    SLICE_X51Y35         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size_reg[3]/CE
+  -------------------------------------------------------------------    -------------------
+
+                         (clock clk_fpga_0 rise edge)
+                                                      4.000     4.000 r  
+    PS7_X0Y0             PS7                          0.000     4.000 r  feed_handler_bd_i/ps7/inst/PS7_i/FCLKCLK[0]
+                         net (fo=1, routed)           1.088     5.088    feed_handler_bd_i/ps7/inst/FCLK_CLK_unbuffered[0]
+    BUFGCTRL_X0Y16       BUFG (Prop_bufg_I_O)         0.091     5.179 r  feed_handler_bd_i/ps7/inst/buffer_fclk_clk_0.FCLK_CLK_0_BUFG/O
+                         net (fo=41210, routed)       1.477     6.656    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/aclk
+    SLICE_X51Y35         FDRE                                         r  feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size_reg[3]/C
+                         clock pessimism              0.115     6.771    
+                         clock uncertainty           -0.070     6.702    
+    SLICE_X51Y35         FDRE (Setup_fdre_C_CE)      -0.205     6.497    feed_handler_bd_i/orderbook_0/inst/u_book/bidStore/store_4_size_reg[3]
+  -------------------------------------------------------------------
+                         required time                          6.497    
+                         arrival time                         -10.991    
+  -------------------------------------------------------------------
+                         slack                                 -4.494    
+
+
+
+

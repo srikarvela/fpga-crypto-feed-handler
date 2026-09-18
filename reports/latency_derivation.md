@@ -93,3 +93,53 @@ what the README's "O(1) single-cycle" description is really about. Moving the
 imbalance divide into the HLS signal engine (which already recomputes it, 64-bit,
 pipelined) and dropping it from the Chisel snapshot is the obvious fix; it has
 **not** been done for these runs.
+
+## 4. The whole design, post-route, through `write_bitstream` (`impl/`)
+
+`tcl/vivado_project.tcl` + `tcl/block_design.tcl`: PS7 (FCLK_CLK0 = 250 MHz) +
+AXI DMA (8-bit MM2S/S2MM) + `feed_parser` + `orderbook_axis_wrap` + `compute_signals`
++ AXIS width converter, xc7z020clg400-1, Vivado 2024.1, bitstream written
+(`build/feed_handler_bd_wrapper.bit`, gitignored).
+
+| Slice LUTs (logic + mem) | FF | DSP | BRAM | period (ns) | WNS (ns) / failing | WHS (ns) / failing | constraints met | setup-limited Fmax |
+|---:|---:|---:|---:|---:|---:|---:|---|---:|
+| 38 814 (37 129 + 1 685), 73 % | 38 646 | 104 | 2 | 4.000 | −4.624 / 58 628 of 90 271 | +0.020 / 0 | no | **116 MHz** |
+
+Per block (`impl/utilization_hierarchical.rpt`): signal engine 33 490 LUT / 32 001 FF
+/ 88 DSP; order book 2 015 LUT / 2 642 FF; parser 253 LUT / 16 DSP; DMA +
+interconnect ≈ 2 600 LUT.
+
+Two things to read carefully:
+
+- **The order book's divider is gone here, and that is why the full design looks
+  faster than the OOC run (116 MHz vs 3.2 MHz).** In the block design the book's
+  `imbalance` output feeds `in_snap[1951:1920]`, which `compute_signals` never
+  reads (it recomputes imbalance from the levels), so Vivado removed the 72÷42-bit
+  divider as dead logic: the book shrinks from 7 641 to 2 015 LUTs. The 3.2 MHz
+  OOC figure is what the book costs if anything downstream consumes
+  `snap.imbalance`; the 116 MHz figure is the integrated system where nothing does.
+- **Setup is still not met at 250 MHz.** WNS −4.624 ns with 58 628 of 90 271
+  endpoints failing (TNS −112 µs). The ten worst paths in `impl/setup_paths.rpt`
+  are all parser → order-book register-enable paths (`feed_parser_0/.../data_p1_reg`
+  → `orderbook_0/.../store_*_size_reg/CE`, 8.16 ns over 10 logic levels, 75 % of
+  it routing): the parallel-compare insert logic fanning a 128-bit message into
+  every level's clock-enable, placed in a 73 %-full device. Hold is met (WHS
+  +0.020 ns, 0 failing) now that there is a real clock network, so the OOC hold
+  failures were the ideal-clock artifact they looked like.
+
+So, for the clock claim: the fabric runs at 250 MHz only in the sense that the PS7
+was configured to drive FCLK_CLK0 at 250 MHz; post-route the design would need a
+period of ≈ 8.6 ns (≈ 116 MHz) to close setup, and about 140 MHz is the ceiling
+Vitis HLS itself estimates for the two HLS blocks. Nothing here has been loaded
+onto a board.
+
+## 5. Summary against the README's original figures
+
+| Figure | Original write-up | From the committed reports |
+|---|---|---|
+| Parser II | 22 | **22** (achieved) |
+| Signal engine II | 1 | **1** (achieved), 85-cycle depth |
+| Book update | 1 cycle | 1 register stage; alone it is a 310 ns combinational divide (3.2 MHz), removed as dead logic in the integrated design |
+| Tick-to-signal | < 10 cycles, ~40 ns | **88 cycles** NormMsg → SignalOut, 111 from the first raw byte (≈ 760 ns / 960 ns at the 116 MHz the full design closes at; ≈ 350 / 440 ns if 250 MHz were met) |
+| Clock | 250 MHz | constraint set to 250 MHz, **not met**: WNS −4.624 ns, Fmax ≈ 116 MHz post-route |
+| Deployed on PYNQ-Z2 | yes | **not run** (no board reachable); bitstream exists locally, driver untested |

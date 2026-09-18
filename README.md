@@ -109,7 +109,7 @@ This mirrors the architecture used in real low-latency trading infrastructure, w
 
 | Metric | Target | Measured (Vivado / Vitis HLS 2024.1, xc7z020clg400-1) | Evidence |
 |---|---|---|---|
-| Clock | 250 MHz (4.000 ns) | **not met** — see the table below for post-route WNS and setup-limited Fmax | `reports/impl/`, `reports/ooc/` |
+| Clock | 250 MHz (4.000 ns) | **not met**: full design post-route WNS −4.624 ns, setup-limited Fmax ≈ **116 MHz**, hold met; order book alone 3.2 MHz (its imbalance divider) | `reports/impl/`, `reports/ooc/` |
 | Parser initiation interval | II = 22 | **II = 22** (iteration latency 22; HLS-estimated clock 6.98 ns / 143 MHz) | `reports/hls/parser_csynth.rpt` |
 | Book update latency | 1 cycle | 1 register stage, but that stage holds a 72÷42-bit combinational divide: **310 ns / 1320 logic levels** post-route | `reports/ooc/N_4.000ns/setup_paths.rpt` |
 | Signal engine II | 1 | **II = 1**, pipeline depth **85 cycles** (four 64-bit dividers; HLS-estimated 7.05 ns / 142 MHz) | `reports/hls/signals_csynth.rpt` |
@@ -127,7 +127,7 @@ Every number here is parsed from the committed reports in [reports/](reports) (`
 | run | scope | Slice LUTs | FF | DSP | BRAM | period (ns) | WNS (ns) / failing | WHS (ns) / failing | constraints met | Fmax (MHz) |
 |---|---|---:|---:|---:|---:|---:|---:|---:|---|---:|
 | `ooc/N_4.000ns` | OrderBook alone, OOC | 7641 | 2704 | 0 | 0 | 4.000 | −306.218 / 2683 of 6750 | −0.002 / 1 | no | **3.2** |
-<!-- IMPL_ROW -->
+| `impl/` | full design: PS7 + DMA + parser + book + signals, bitstream | 38814 | 38646 | 104 | 2 | 4.000 | −4.624 / 58628 of 90271 | +0.020 / 0 | no | **116** |
 
 <p align="center">
   <img src="docs/previews/utilization.png" alt="FPGA Resource Utilization (post-route)" width="90%" />
@@ -136,6 +136,7 @@ Every number here is parsed from the committed reports in [reports/](reports) (`
 **Reading the results.**
 
 - **The order book does not run at 250 MHz, or at 25.** Its worst post-route path is `askStore/store_5_valid_reg` → `snap_imbalance_reg[29]`: 310 ns through 1320 logic levels (1242 CARRY4). That is `((bidVol − askVol) << 16) / totalVol` in `OrderBook.scala`, which Chisel emits as one combinational 72-bit ÷ 42-bit signed divide between the level registers and the snapshot register. The parallel-compare insert/delete logic itself is not the problem; the divider is. Moving the imbalance computation out of the Chisel book (the HLS signal engine already recomputes it with a pipelined divider) is the fix, and it has **not** been applied for these runs, so the numbers describe the design as committed.
+- **The full design builds to a bitstream but does not close 250 MHz either: WNS −4.624 ns, 58 628 of 90 271 endpoints failing, setup-limited Fmax ≈ 116 MHz; hold is met (+0.020 ns).** The ten worst paths are parser → order-book register-enable paths (8.16 ns, 75 % routing) in a device that is 73 % full of LUTs, almost all of them the signal engine's dividers (33 490 of 38 814 LUTs). The book is only 2 015 LUTs here because its imbalance divider is dead logic in the integrated design — the HLS engine recomputes imbalance and never reads the book's — so Vivado removed it. That is the only reason the full design is faster than the book's own OOC run.
 - **The HLS blocks meet their II targets but not the 4.000 ns clock estimate.** Vitis HLS reports II = 22 for the parser and II = 1 for the signal engine exactly as designed, with estimated clocks of 6.98 ns and 7.05 ns (≈ 140 MHz) — the parser's 103-bit constant multiply for `price_raw / TICK_SIZE` and the engine's 64-bit multiplies/divides are the long paths. The engine's II = 1 costs an 85-cycle pipeline and roughly 31 k LUTs / 61 k FFs / 88 DSPs (HLS estimate).
 - **Hold.** The OOC run fails hold on one input-port path by 0.002 ns, the ideal-clock artifact of out-of-context analysis; not claimed either way.
 - **Tier 3 (hardware) has not been run.** No PYNQ-Z2 was reachable while these reports were generated, so nothing here is board-verified. Two integration gaps are known from the build alone: neither HLS stream carries `TLAST`, so the AXI DMA S2MM channel has nothing to terminate a transfer on, and `board/pynq/pynq_driver.py` unpacks 25-byte records while the HLS `SignalOut` stream is 28 bytes wide (C-struct alignment).
