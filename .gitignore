@@ -13,8 +13,15 @@ chisel/test_run_dir/
 feed_parser/
 compute_signals/
 
-# Vivado project output
+# Vivado project output (reports/ is committed; bitstream, logs and the VM copies are not)
 vivado/
+build/
+*.bit
+*.hwh
+*.dcp
+*.jou
+*.log
+.Xil/
 
 # Python
 __pycache__/

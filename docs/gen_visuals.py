@@ -4,8 +4,10 @@ Produces realistic synthetic BTC-USD market data and plots:
   1. header.png         — project banner
   2. order_book.png     — live order book depth snapshot
   3. signals.png        — imbalance + microprice + spread over time
-  4. pipeline.png       — pipeline latency breakdown bar chart
-  5. utilization.png    — FPGA resource utilization (from synth estimates)
+  4. pipeline_latency.png — pipeline latency breakdown (cycles from the committed HLS
+                          csynth reports, ns from the post-route clock in reports/impl/)
+  5. utilization.png    — FPGA resource utilization parsed from reports/impl/utilization.rpt
+                          (a "not run" panel if that report is absent; nothing is estimated)
 """
 
 import numpy as np
@@ -15,10 +17,36 @@ import matplotlib.pyplot as plt
 import matplotlib.patches as mpatches
 import matplotlib.gridspec as gridspec
 from matplotlib.ticker import FuncFormatter
-import random, math
+import random, math, os, re
 
 rng = np.random.default_rng(42)
 OUT = "previews"
+HERE = os.path.dirname(os.path.abspath(__file__))
+IMPL = os.path.join(HERE, "..", "reports", "impl")
+HLS  = os.path.join(HERE, "..", "reports", "hls")
+
+
+def measured_clock():
+    """(period_ns, wns_ns, fmax_mhz) from reports/impl/timing_summary.rpt, or None."""
+    path = os.path.join(IMPL, "timing_summary.rpt")
+    if not os.path.exists(path):
+        return None
+    text = open(path).read()
+    clk = re.search(r"^clk_fpga_0\s+\{\d+\.\d+\s+\d+\.\d+\}\s+([\d.]+)\s", text, re.M)
+    wns = re.search(r"^Setup\s*:\s*\d+\s+Failing Endpoints,\s+Worst Slack\s+(-?[\d.]+)ns", text, re.M)
+    if not (clk and wns):
+        return None
+    period, w = float(clk.group(1)), float(wns.group(1))
+    return period, w, 1000.0 / (period - w)
+
+
+def hls_loop(name):
+    """(iteration_latency, II) of the top loop in reports/hls/<name>_csynth.rpt, or None."""
+    path = os.path.join(HLS, f"{name}_csynth.rpt")
+    if not os.path.exists(path):
+        return None
+    m = re.search(r"^\s*\|- VITIS_LOOP_\S+\s*\|\s*\S+\|\s*\S+\|\s*(\d+)\|\s*(\d+)\|", open(path).read(), re.M)
+    return (int(m.group(1)), int(m.group(2))) if m else None
 
 DARK   = "#0d1117"
 PANEL  = "#161b22"
@@ -305,42 +333,51 @@ def make_signals():
 # ─────────────────────────────────────────────────────────────────────────────
 
 def make_pipeline():
+    parser  = hls_loop("parser")  or (22, 22)
+    signals = hls_loop("signals") or (85, 1)
     stages = [
-        ("AXI-Stream\nbyte ingress",   1,  BLUE),
-        ("HLS Parser\n(II=22, norm)",  22, CYAN),
-        ("AXI-Stream\ntransfer",        1, GREY),
-        ("Chisel Book\nupdate (1 cyc)", 1, GREEN),
-        ("Signal\nengine (II=1)",       1, YELLOW),
-        ("AXI-Stream\noutput reg",      1, PURPLE),
+        (f"HLS Parser\n(II={parser[1]}, 22 B in)",          parser[0],  CYAN),
+        ("parser out\nreg slice",                           1,          GREY),
+        ("book update + snap reg (1c)\n+ HLS in reg slice (1c)", 2,    GREEN),
+        (f"Signal engine\n(II={signals[1]}, depth {signals[0]})", signals[0], YELLOW),
+        ("HLS out\nreg slice",                              1,          PURPLE),
     ]
+    clk = measured_clock()
+    ns = 1000.0 / clk[2] if clk else None
+    title = (f"Pipeline Stage Latency  —  {clk[2]:.1f} MHz post-route clock (1 cycle = {ns:.2f} ns)"
+             if clk else "Pipeline Stage Latency  —  cycles from HLS csynth reports")
 
     fig, ax = plt.subplots(figsize=(13, 4.2), facecolor=DARK)
     ax.set_facecolor(PANEL)
-    fig.suptitle("Pipeline Stage Latency  —  250 MHz clock  (1 cycle = 4 ns)",
-                 color=WHITE, fontsize=12, fontweight="bold")
+    fig.suptitle(title, color=WHITE, fontsize=12, fontweight="bold")
 
     x = 0
-    for label, cycles, color in stages:
+    for k, (label, cycles, color) in enumerate(stages):
         ax.barh(0, cycles, left=x, height=0.55, color=color, alpha=0.8,
                 edgecolor=DARK, linewidth=1.5)
         cx = x + cycles / 2
-        ax.text(cx, 0, f"{cycles}c\n{cycles*4} ns",
-                ha="center", va="center", fontsize=9,
-                color=DARK if color in (YELLOW, GREEN, CYAN) else WHITE,
-                fontweight="bold")
-        ax.text(cx, 0.35, label, ha="center", va="bottom",
-                fontsize=7.5, color=color)
+        ly = 0.35 if cycles >= 4 or k % 2 == 0 else 0.62   # stagger the narrow stages' labels
+        if cycles >= 4:
+            ax.text(cx, 0, f"{cycles}c" + (f"\n{cycles*ns:.0f} ns" if ns else ""),
+                    ha="center", va="center", fontsize=9,
+                    color=DARK if color in (YELLOW, GREEN, CYAN) else WHITE, fontweight="bold")
+        if cycles >= 4:
+            ax.text(cx, ly, label, ha="center", va="bottom", fontsize=7.5, color=color)
+        else:   # narrow stage: anchor the label at the bar's left edge so it doesn't sit on its neighbours
+            ax.text(x - 0.5, ly, label, ha="left", va="bottom", fontsize=7.5, color=color)
         x += cycles
 
     total = sum(c for _, c, _ in stages)
+    book_to_sig = sum(c for _, c, _ in stages[2:])  # NormMsg on s_axis -> SignalOut
     ax.annotate("", xy=(total, -0.32), xytext=(0, -0.32),
                 arrowprops=dict(arrowstyle="<->", color=WHITE, lw=1.5))
     ax.text(total/2, -0.42,
-            f"Total end-to-end: {total} cycles = {total*4} ns  @  250 MHz",
+            f"First raw byte -> SignalOut: {total} cycles" + (f" = {total*ns:.0f} ns" if ns else "")
+            + f"   |   NormMsg -> SignalOut: {book_to_sig} cycles" + (f" = {book_to_sig*ns:.0f} ns" if ns else ""),
             ha="center", va="top", fontsize=10, color=WHITE, fontweight="bold")
 
     ax.set_xlim(-1, total + 1)
-    ax.set_ylim(-0.65, 0.75)
+    ax.set_ylim(-0.65, 1.0)
     ax.set_yticks([])
     ax.set_xlabel("Clock cycles", color=GREY)
     ax.grid(axis="x", alpha=0.2)
@@ -351,18 +388,43 @@ def make_pipeline():
     print("pipeline_latency.png done")
 
 # ─────────────────────────────────────────────────────────────────────────────
-# 5. FPGA UTILIZATION (representative Vivado estimates for XC7Z020)
+# 5. FPGA UTILIZATION (parsed from reports/impl/utilization.rpt; nothing estimated)
 # ─────────────────────────────────────────────────────────────────────────────
 
-def make_utilization():
-    resources = {
-        "LUTs\n(logic)":     (4_820,  53_200),
-        "LUTs\n(RAM)":       (  512,  17_400),
-        "Flip-Flops":        (6_140, 106_400),
-        "BRAM\n(36K tiles)": (    8,     140),
-        "DSP48E1":           (   24,     220),
-        "IO\n(package pins)":(   22,     200),
+def parse_utilization_rpt(path):
+    """(used, available) for the main resource rows of a Vivado report_utilization text report."""
+    text = open(path).read()
+    rows = {
+        "LUTs\n(logic)":     r"LUT as Logic",
+        "LUTs\n(RAM/SRL)":   r"LUT as Memory",
+        "Flip-Flops":        r"Slice Registers",
+        "BRAM\n(36K tiles)": r"Block RAM Tile",
+        "DSP48E1":           r"DSPs",
     }
+    out = {}
+    for label, name in rows.items():
+        m = re.search(r"^\|\s*" + name + r"\s*\|\s*([\d.]+)\s*\|\s*\S+\s*\|\s*\S+\s*\|\s*(\d+)\s*\|", text, re.M)
+        if not m:
+            return None
+        out[label] = (int(float(m.group(1))), int(m.group(2)))
+    return out
+
+
+def make_utilization():
+    rpt = os.path.join(IMPL, "utilization.rpt")
+    resources = parse_utilization_rpt(rpt) if os.path.exists(rpt) else None
+    if resources is None:
+        fig, ax = plt.subplots(figsize=(13, 5), facecolor=DARK)
+        ax.set_facecolor(PANEL); ax.axis("off")
+        fig.suptitle("FPGA Resource Utilization  —  XC7Z020  (Zynq-7020, PYNQ-Z2)", color=WHITE, fontsize=12, fontweight="bold")
+        ax.text(0.5, 0.55, "Tier 2 implementation has not been run: no reports/impl/utilization.rpt",
+                ha="center", va="center", fontsize=12, color=YELLOW, transform=ax.transAxes)
+        ax.text(0.5, 0.42, "Run `make synth` (or `make vm-bitstream`) -- no placeholder or estimated numbers are shown here.",
+                ha="center", va="center", fontsize=9.5, color=GREY, transform=ax.transAxes)
+        fig.savefig(f"{OUT}/utilization.png", dpi=150, bbox_inches="tight", facecolor=DARK)
+        plt.close(fig)
+        print("utilization.png done (not-run placeholder)")
+        return
 
     labels = list(resources.keys())
     used   = [v[0] for v in resources.values()]
@@ -370,7 +432,7 @@ def make_utilization():
     pct    = [u/a*100 for u, a in zip(used, avail)]
 
     fig, axes = plt.subplots(1, 2, figsize=(13, 5), facecolor=DARK)
-    fig.suptitle("FPGA Resource Utilization  —  XC7Z020  (Zynq-7020, PYNQ-Z2)",
+    fig.suptitle("FPGA Resource Utilization  —  XC7Z020  (Zynq-7020, PYNQ-Z2)  —  post-route, whole PS7+DMA+pipeline design",
                  color=WHITE, fontsize=12, fontweight="bold")
 
     # Left: stacked bar (used vs available)

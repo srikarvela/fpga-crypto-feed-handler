@@ -29,15 +29,17 @@ The goal is a **complete, verifiable, demo-able system** — from live WebSocket
 **Current version:** `v1.0-full-stack`
 
 ✔ Chisel order book engine (parallel-compare sorted insert, depth-N parametric)  
-✔ HLS binary parser (22-byte wire format → NormMsg AXI-Stream, II=22)  
-✔ HLS signal engine (imbalance Q16, microprice, spread, VWAP Q8)  
-✔ ChiselTest unit suite (6 cases: insert, delete, update, imbalance, midprice, depth cap)  
-✔ HLS C-sim + co-sim testbenches  
-✔ Tcl automation: HLS → Chisel Verilog → Vivado synthesis + implementation  
-✔ Vivado block design (PS7 + AXI DMA + parser + OrderBook + signals)  
+✔ HLS binary parser (22-byte wire format → NormMsg AXI-Stream) — Vitis HLS 2024.1 csynth: **II = 22 achieved** ([reports/hls/parser_csynth.rpt](reports/hls/parser_csynth.rpt))  
+✔ HLS signal engine (imbalance Q16, microprice, spread, VWAP Q8) — csynth: **II = 1 achieved, 85-cycle pipeline depth** ([reports/hls/signals_csynth.rpt](reports/hls/signals_csynth.rpt))  
+✔ ChiselTest unit suite (7 cases: bid/ask sorted insert, delete, update, imbalance, midprice, depth cap) — passing (sbt 1.9.9)  
+✔ HLS C-sim + C/RTL co-sim: both testbenches PASS ([reports/hls/](reports/hls))  
+✔ Tcl automation: HLS → Chisel Verilog → Vivado block design → synthesis + implementation, runnable from macOS into a Parallels Windows VM  
+✔ Vivado block design (PS7 + AXI DMA + parser + OrderBook + signals), built for real — see [Synthesis results](#-synthesis-results-post-route-timing-and-utilization)  
 ✔ Python golden model + pytest suite  
 ✔ Live Coinbase WebSocket feed adapter (binary replay capture)  
-✔ PYNQ-Z2 DMA driver with hw-vs-golden diff checker  
+✔ PYNQ-Z2 DMA driver with hw-vs-golden diff checker — written, **not yet run on a board** (Tier 3 unverified)  
+
+**Measured, not targeted:** the 250 MHz / sub-10-cycle figures in the original write-up were design targets. The Vivado and Vitis HLS reports now committed under [reports/](reports) show the design as written does **not** reach them; the real numbers are in [Synthesis results](#-synthesis-results-post-route-timing-and-utilization) and [reports/latency_derivation.md](reports/latency_derivation.md).
 
 ---
 
@@ -49,7 +51,7 @@ The goal is a **complete, verifiable, demo-able system** — from live WebSocket
          │  22-byte binary wire format (UDP or DMA)
          ▼
 ┌─────────────────────┐
-│   HLS Feed Parser   │  Vitis HLS · II=22 · 250 MHz
+│   HLS Feed Parser   │  Vitis HLS · II=22 (measured)
 │  raw bytes → NormMsg│  price normalization (ticks)
 └────────┬────────────┘
          │  AXI-Stream (128-bit packed NormMsg)
@@ -69,7 +71,7 @@ The goal is a **complete, verifiable, demo-able system** — from live WebSocket
                            │  AXI-Stream snapshot
                            ▼
                ┌───────────────────────┐
-               │  HLS Signal Engine    │  Vitis HLS · II=1
+               │  HLS Signal Engine    │  Vitis HLS · II=1, 85-cycle depth
                │  microprice · spread  │
                │  VWAP bid/ask (Q8)    │
                └───────────┬───────────┘
@@ -90,10 +92,10 @@ The order book uses a **parallel shift-register structure**: all depth slots are
 
 Software order books on CPUs run at microsecond latencies, limited by memory bandwidth, branch mispredictions, and OS scheduling jitter. An FPGA implementation achieves:
 
-- **Deterministic single-cycle update** — no cache misses, no branch prediction
-- **Pipelined throughput** — the HLS parser sustains one message per 22 clock cycles (88 ns at 250 MHz = ~11M msg/s)
+- **Deterministic single-register-stage update** — no cache misses, no branch prediction (but see the timing results below: that one stage currently contains a combinational divider)
+- **Pipelined throughput** — the HLS parser sustains one message per 22 clock cycles (II = 22 confirmed by csynth)
 - **Zero-copy data path** — AXI-Stream connects all blocks without software intervention
-- **Tick-to-signal in < 10 cycles** — from NormMsg arriving to SignalOut leaving the book
+- **Tick-to-signal in a fixed number of cycles** — 88 cycles from NormMsg arriving at the book to SignalOut leaving the signal engine, per the committed HLS reports (the earlier "< 10 cycles" figure was a target, not a measurement; derivation in [reports/latency_derivation.md](reports/latency_derivation.md))
 
 This mirrors the architecture used in real low-latency trading infrastructure, where the feed handler and book builder are co-located in FPGA fabric.
 
@@ -105,20 +107,38 @@ This mirrors the architecture used in real low-latency trading infrastructure, w
   <img src="docs/previews/pipeline_latency.png" alt="Pipeline Latency Breakdown" width="90%" />
 </p>
 
-| Metric | Value |
-|---|---|
-| Clock target | 250 MHz (4 ns period) |
-| Parser throughput | 1 msg / 22 cycles = ~11M msg/s |
-| Book update latency | 1 cycle (single-cycle parallel compare) |
-| Signal engine II | 1 cycle |
-| End-to-end tick-to-signal | < 10 cycles (~40 ns) |
-| Target device | Zynq XC7Z020 (PYNQ-Z2) |
+| Metric | Target | Measured (Vivado / Vitis HLS 2024.1, xc7z020clg400-1) | Evidence |
+|---|---|---|---|
+| Clock | 250 MHz (4.000 ns) | **not met** — see the table below for post-route WNS and setup-limited Fmax | `reports/impl/`, `reports/ooc/` |
+| Parser initiation interval | II = 22 | **II = 22** (iteration latency 22; HLS-estimated clock 6.98 ns / 143 MHz) | `reports/hls/parser_csynth.rpt` |
+| Book update latency | 1 cycle | 1 register stage, but that stage holds a 72÷42-bit combinational divide: **310 ns / 1320 logic levels** post-route | `reports/ooc/N_4.000ns/setup_paths.rpt` |
+| Signal engine II | 1 | **II = 1**, pipeline depth **85 cycles** (four 64-bit dividers; HLS-estimated 7.05 ns / 142 MHz) | `reports/hls/signals_csynth.rpt` |
+| NormMsg → SignalOut | < 10 cycles (~40 ns) | **88 cycles** (1 book + 1 slice + 85 engine + 1 slice); 111 from the first raw byte; co-sim measured 86 cycles in→out for the engine | `reports/latency_derivation.md` |
+| Target device | Zynq XC7Z020 (PYNQ-Z2) | same | |
 
-Synthesis utilization and timing closure reports are generated automatically at `vivado/timing_summary.rpt` and `vivado/utilization.rpt`.
+The figure above is generated from the same reports (`docs/gen_visuals.py` reads `reports/hls/*_csynth.rpt` and `reports/impl/timing_summary.rpt`); nothing in it is typed in by hand.
+
+---
+
+## 📏 Synthesis results: post-route timing and utilization
+
+Every number here is parsed from the committed reports in [reports/](reports) (`docs/gen_visuals.py` for the chart, the text by hand from the same files). Flow: `make vm-hls` (both HLS blocks: csim → csynth → cosim → export_ip), `make vm-ooc` (OrderBook alone, out-of-context synth + P&R at 4.000 ns), `make vm-bitstream` (the full PS7 + AXI DMA + parser + OrderBook + signal-engine block design through `write_bitstream`, FCLK_CLK0 = 250 MHz). Fmax = 1 / (period − WNS) is the setup-limited clock from post-route slack, as in the sibling cordic-engine repo.
+
+| run | scope | Slice LUTs | FF | DSP | BRAM | period (ns) | WNS (ns) / failing | WHS (ns) / failing | constraints met | Fmax (MHz) |
+|---|---|---:|---:|---:|---:|---:|---:|---:|---|---:|
+| `ooc/N_4.000ns` | OrderBook alone, OOC | 7641 | 2704 | 0 | 0 | 4.000 | −306.218 / 2683 of 6750 | −0.002 / 1 | no | **3.2** |
+<!-- IMPL_ROW -->
 
 <p align="center">
-  <img src="docs/previews/utilization.png" alt="FPGA Resource Utilization" width="90%" />
+  <img src="docs/previews/utilization.png" alt="FPGA Resource Utilization (post-route)" width="90%" />
 </p>
+
+**Reading the results.**
+
+- **The order book does not run at 250 MHz, or at 25.** Its worst post-route path is `askStore/store_5_valid_reg` → `snap_imbalance_reg[29]`: 310 ns through 1320 logic levels (1242 CARRY4). That is `((bidVol − askVol) << 16) / totalVol` in `OrderBook.scala`, which Chisel emits as one combinational 72-bit ÷ 42-bit signed divide between the level registers and the snapshot register. The parallel-compare insert/delete logic itself is not the problem; the divider is. Moving the imbalance computation out of the Chisel book (the HLS signal engine already recomputes it with a pipelined divider) is the fix, and it has **not** been applied for these runs, so the numbers describe the design as committed.
+- **The HLS blocks meet their II targets but not the 4.000 ns clock estimate.** Vitis HLS reports II = 22 for the parser and II = 1 for the signal engine exactly as designed, with estimated clocks of 6.98 ns and 7.05 ns (≈ 140 MHz) — the parser's 103-bit constant multiply for `price_raw / TICK_SIZE` and the engine's 64-bit multiplies/divides are the long paths. The engine's II = 1 costs an 85-cycle pipeline and roughly 31 k LUTs / 61 k FFs / 88 DSPs (HLS estimate).
+- **Hold.** The OOC run fails hold on one input-port path by 0.002 ns, the ideal-clock artifact of out-of-context analysis; not claimed either way.
+- **Tier 3 (hardware) has not been run.** No PYNQ-Z2 was reachable while these reports were generated, so nothing here is board-verified. Two integration gaps are known from the build alone: neither HLS stream carries `TLAST`, so the AXI DMA S2MM channel has nothing to terminate a transfer on, and `board/pynq/pynq_driver.py` unpacks 25-byte records while the HLS `SignalOut` stream is 28 bytes wide (C-struct alignment).
 
 ---
 
@@ -147,7 +167,7 @@ Hardware correctness is verified at three levels:
 Six test cases exercise the Chisel order book directly: sorted bid insert, sorted ask insert, level deletion, in-place size update, imbalance sign, midprice arithmetic, and depth-cap enforcement.
 
 **Level 2 — HLS C-sim + Co-sim**  
-Each HLS block has a standalone C++ testbench. Co-simulation re-runs the same testbench against Verilog-level RTL after synthesis to confirm functional equivalence.
+Each HLS block has a standalone C++ testbench. Co-simulation re-runs the same testbench against Verilog-level RTL after synthesis to confirm functional equivalence. Both pass (`parser_tb PASSED`, `signals_tb PASSED`, `C/RTL co-simulation finished: PASS`); the `*_cosim.rpt` tables show `Status Fail` alongside, which the HLS log attributes to the `ap_ctrl_none` + non-blocking `while (!stream.empty())` structure (`COSIM 212-382`) — see [reports/latency_derivation.md](reports/latency_derivation.md).
 
 **Level 3 — Golden model diff (Python)**  
 A NumPy reference order book processes the same binary replay file as the hardware. The PYNQ driver collects hardware signal outputs via DMA and calls `diff_hw_vs_ref()` — any integer difference beyond a configurable tolerance (default: 1 LSB) is flagged.
@@ -189,9 +209,11 @@ live Coinbase WS
 
 ### Tcl Automation (`tcl/`)
 - `run_hls_parser.tcl` / `run_hls_signals.tcl` — full HLS flow: csim → csynth → cosim → IP export
-- `vivado_project.tcl` — creates Vivado project, adds IPs, runs synthesis + implementation, writes timing and utilization reports
-- `block_design.tcl` — wires PS7 + AXI DMA + parser + OrderBook + signals in a block design
+- `vivado_project.tcl` — creates the Vivado project, adds the HLS IPs and `OrderBook.v`, builds the block design, runs synthesis + implementation to a bitstream, writes `reports/impl/*.rpt`
+- `block_design.tcl` — PS7 (FCLK_CLK0 = 250 MHz) + AXI DMA (8-bit streams) → parser → OrderBook (via `rtl/orderbook_axis_wrap.v`) → signals → AXIS width converter → DMA
+- `orderbook_ooc.tcl` — the OrderBook alone, out-of-context synth + P&R, `reports/ooc/`
 - `run_all.tcl` — master orchestrator: HLS → Chisel Verilog → Vivado, callable as a single command
+- `scripts/vivado_in_parallels.sh hls|ooc|bitstream` — runs any of the above inside a Parallels Windows VM from macOS and copies `reports/` back
 
 ### Python Feed & Verification (`python/`)
 - `coinbase_feed.py` — subscribes to Coinbase Advanced Trade WebSocket L2 channel, packs messages into the 22-byte wire format, writes binary replay files
@@ -217,9 +239,9 @@ Chisel RTL simulation with ChiselTest, HLS C-simulation, and Python pytest — a
 
 Pushes the full design through Vivado synthesis and implementation. Produces timing closure reports and resource utilization numbers. Requires Vivado + Vitis HLS.
 
-**Tier 3 — On hardware**
+**Tier 3 — On hardware** (not yet run)
 
-Deploys the bitstream to a PYNQ-Z2, streams live Coinbase data via DMA, and verifies hardware output against the Python golden model in real time.
+Deploys the bitstream to a PYNQ-Z2, streams live Coinbase data via DMA, and verifies hardware output against the Python golden model in real time. The driver exists; no board run has been performed, so there is no `reports/hw/` yet.
 
 ---
 
@@ -228,8 +250,8 @@ Deploys the bitstream to a PYNQ-Z2, streams live Coinbase data via DMA, and veri
 **Prerequisites**
 
 - SBT ≥ 1.9 + Java 11+ (for Chisel)
-- Vitis HLS 2023.x (for HLS C-sim / cosim)
-- Vivado 2023.x (for synthesis, Tier 2+)
+- Vitis HLS 2024.1 (for HLS C-sim / cosim)
+- Vivado 2024.1 (for synthesis, Tier 2+) — natively, or inside a Parallels Windows VM via `scripts/vivado_in_parallels.sh`
 - Python ≥ 3.11 + dependencies below (for golden model and feed)
 - PYNQ-Z2 board + `pynq` Python package (Tier 3 only)
 
@@ -252,10 +274,11 @@ This runs:
 **Tier 2 — Synthesize and get timing/resource numbers**
 
 ```bash
-make synth
-# Reports written to:
-#   vivado/timing_summary.rpt
-#   vivado/utilization.rpt
+make hls-parser hls-signals   # -> reports/hls/*_csynth.rpt, *_cosim.rpt
+make synth-ooc                # OrderBook alone            -> reports/ooc/N_4.000ns/
+make synth                    # full block design + bitstream -> reports/impl/, build/*.bit
+# or, from macOS with Vivado in a Parallels Windows VM:
+make vm-hls && make vm-ooc && make vm-bitstream
 ```
 
 **Tier 3 — Capture live data and run on board**
@@ -349,7 +372,14 @@ fpga-crypto-feed-handler/
 │   ├── golden/test_golden.py         pytest: sorted insert, delete, arithmetic
 │   └── requirements.txt
 │
-├── board/pynq/pynq_driver.py         ── TIER 3 ── load bitstream, DMA, verify
+├── board/pynq/pynq_driver.py         ── TIER 3 ── load bitstream, DMA, verify (not yet run)
+├── rtl/orderbook_axis_wrap.v         AXI4-Stream shell around OrderBook.v for IP Integrator
+├── scripts/vivado_in_parallels.sh    macOS -> Parallels Windows VM runner (hls | ooc | bitstream)
+├── reports/                          committed tool output
+│   ├── hls/                          parser_/signals_ csynth.rpt + cosim.rpt
+│   ├── ooc/N_4.000ns/                OrderBook OOC post-route timing + utilization
+│   ├── impl/                         full-design post-route timing + utilization
+│   └── latency_derivation.md         cycle accounting behind the tick-to-signal number
 └── constraints/pynq_z2.xdc
 ```
 

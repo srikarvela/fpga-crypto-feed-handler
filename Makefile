@@ -33,11 +33,27 @@ sim: chisel-test hls-parser hls-signals golden-test
 
 # ── Tier 2: synthesis ─────────────────────────────────────────────────────────
 
+PYTHON ?= python3
+
 .PHONY: synth
 synth: chisel-verilog
-	$(VIVADO) -mode batch -source tcl/vivado_project.tcl
-	@echo "=== Timing report: vivado/timing_summary.rpt ==="
-	@echo "=== Utilization:   vivado/utilization.rpt    ==="
+	$(VIVADO) -mode batch -nolog -nojournal -source tcl/vivado_project.tcl
+	@echo "=== Timing report: reports/impl/timing_summary.rpt ==="
+	@echo "=== Utilization:   reports/impl/utilization.rpt    ==="
+
+# OrderBook alone, out-of-context, at the 4.000 ns pipeline constraint -> reports/ooc/
+.PHONY: synth-ooc
+synth-ooc: chisel-verilog
+	$(VIVADO) -mode batch -nolog -nojournal -source tcl/orderbook_ooc.tcl
+
+# The same three flows driven from macOS into a Parallels Windows VM (Apple Silicon)
+.PHONY: vm-hls vm-ooc vm-bitstream
+vm-hls:
+	./scripts/vivado_in_parallels.sh hls
+vm-ooc: chisel-verilog
+	./scripts/vivado_in_parallels.sh ooc
+vm-bitstream: chisel-verilog
+	./scripts/vivado_in_parallels.sh bitstream
 
 # ── Tier 3: on-board ─────────────────────────────────────────────────────────
 
@@ -63,7 +79,7 @@ board-run:
 clean:
 	rm -rf chisel/generated chisel/target chisel/project/target
 	rm -rf feed_parser compute_signals
-	rm -rf vivado
+	rm -rf vivado build
 	rm -f python/vectors/*.bin python/vectors/*.json
 
 .PHONY: all
