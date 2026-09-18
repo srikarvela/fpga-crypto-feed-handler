@@ -55,7 +55,7 @@ for _ in $(seq 1 30); do vm cmd /c "echo ready" >/dev/null 2>&1 && break; sleep 
 
 mkdir -p "$SHARE_MAC" reports build
 rm -rf "$SHARE_MAC/out" "$SHARE_MAC/feed.zip"
-zip -qr "$SHARE_MAC/feed.zip" hls tcl constraints rtl chisel/generated -x 'chisel/generated/*.fir' 'chisel/generated/*.json'
+zip -qr "$SHARE_MAC/feed.zip" hls tcl constraints rtl tb chisel/generated -x 'chisel/generated/*.fir' 'chisel/generated/*.json'
 if [ "$MODE" = hls ]; then
   vm powershell -NoProfile -Command "Remove-Item -Recurse -Force '$WORK' -ErrorAction SilentlyContinue; Expand-Archive -Path '$SHARE_VM\\feed.zip' -DestinationPath '$WORK'" >/dev/null
 else

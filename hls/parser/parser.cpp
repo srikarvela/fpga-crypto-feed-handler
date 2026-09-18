@@ -26,6 +26,32 @@ static ap_uint<64> le64(const ap_uint<8>* buf) {
     return lo | (hi << 32);
 }
 
+// x / 100 for any 64-bit x:  t = mulhi(x, M'),  q = (t + ((x - t) >> 1)) >> 6,
+// with M' = ceil(2^71 / 100) - 2^64 = 0x47AE147AE147AE15 (checked exhaustively at the
+// 64-bit boundaries and on 3.5e5 random inputs in the Python derivation; the C testbench
+// re-checks it against '/' on random inputs, and co-simulation checks the RTL).
+ap_uint<64> parser_div100(ap_uint<64> x) {
+#pragma HLS INLINE off
+#pragma HLS PIPELINE II=1
+    // mulhi(x, M') from four 32x32 partial products (each one DSP48E1 cascade with
+    // its own pipeline registers) and 64-bit adds in separate stages, instead of
+    // one 64x64 multiply that Vitis HLS would implement as a 103-bit combinational op.
+    const ap_uint<32> mh = 0x47AE147AUL, ml = 0xE147AE15UL;   // M' = {mh, ml}
+    ap_uint<32> xh = x.range(63, 32), xl = x.range(31, 0);
+    ap_uint<64> hh = xh * mh;
+#pragma HLS BIND_OP variable=hh op=mul impl=dsp latency=4
+    ap_uint<64> hl = xh * ml;
+#pragma HLS BIND_OP variable=hl op=mul impl=dsp latency=4
+    ap_uint<64> lh = xl * mh;
+#pragma HLS BIND_OP variable=lh op=mul impl=dsp latency=4
+    ap_uint<64> ll = xl * ml;
+#pragma HLS BIND_OP variable=ll op=mul impl=dsp latency=4
+    ap_uint<66> mid = (ap_uint<66>)hl + (ap_uint<66>)lh + (ap_uint<66>)(ll >> 32);   // exact, < 2^66
+    ap_uint<64> t   = hh + (ap_uint<64>)(mid >> 32);                                // = (x * M') >> 64
+    ap_uint<64> q   = (t + ((x - t) >> 1)) >> 6;
+    return q;
+}
+
 // feed_parser: consume raw binary messages (22 bytes each), emit NormMsg words.
 // Runs as a dataflow pipeline: one message per II=22 cycles.
 void feed_parser(
@@ -51,8 +77,12 @@ void feed_parser(
         ap_uint<64> price_r  = le64(buf + 6);
         ap_uint<64> size_r   = le64(buf + 14);
 
-        // Normalize price to ticks (integer divide)
+        // Normalize price to ticks (integer divide by the compile-time TICK_SIZE)
+#if TICK_SIZE == 100ULL
+        ap_uint<32> price_ticks = (ap_uint<32>)parser_div100(price_r);
+#else
         ap_uint<32> price_ticks = (ap_uint<32>)(price_r / TICK_SIZE);
+#endif
 
         // Delete messages (type 'D') → size = 0 signals deletion to the order book
         ap_uint<32> size_norm = (msg_type == 'D') ? (ap_uint<32>)0 : (ap_uint<32>)size_r;

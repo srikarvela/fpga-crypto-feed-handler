@@ -1,4 +1,4 @@
-Report time       : Thu Sep 17 19:51:48 SAPST 2026
+Report time       : Fri Sep 18 05:04:23 SAPST 2026
 Cygwin WARNING:
   Couldn't compute FAST_CWD pointer.  This typically occurs if you're using
   an older Cygwin version on a newer Windows.  Please update to the latest
@@ -14,5 +14,5 @@ Simulation tool   : xsim.
 |          |          |      min      |      avg      |      max      |      min      |      avg      |      max      |                      |
 +----------+----------+-----------------------------------------------+-----------------------------------------------+----------------------+
 |      VHDL|        NA|             NA|             NA|             NA|             NA|             NA|             NA|                    NA|
-|   Verilog|      Fail|             67|             67|             67|             NA|             NA|             NA|                    67|
+|   Verilog|      Fail|             71|             71|             71|             NA|             NA|             NA|                    71|
 +----------+----------+-----------------------------------------------+-----------------------------------------------+----------------------+

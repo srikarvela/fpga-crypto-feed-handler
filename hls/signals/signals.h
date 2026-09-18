@@ -3,7 +3,7 @@
 #include <ap_int.h>
 #include <hls_stream.h>
 
-// Snapshot word from the Chisel order book (passed back via AXI-Lite registers or DMA)
+// Snapshot word from the Chisel order book (AXI4-Stream, C-struct aligned by Vitis HLS)
 static const int DEPTH = 10;
 
 struct LevelHW {
@@ -15,8 +15,7 @@ struct LevelHW {
 struct BookSnap {
     LevelHW bids[DEPTH];
     LevelHW asks[DEPTH];
-    ap_int<32>  imbalance;  // Q16 from Chisel (passthrough, recomputed here for reference)
-    ap_uint<32> midprice;
+    ap_uint<32> midprice;   // (best_bid + best_ask) / 2 in ticks, from the book
     ap_uint<32> seq_num;
 };
 

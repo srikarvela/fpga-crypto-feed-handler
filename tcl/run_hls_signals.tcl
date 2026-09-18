@@ -16,6 +16,8 @@ add_files -tb hls/signals/signals_tb.cpp
 open_solution "solution1" -flow_target vivado
 set_part $part
 create_clock -period $period_ns -name default
+# Vitis HLS defaults to 27 % clock uncertainty; 0.35 ns leaves room for one carry chain + mux per stage.
+set_clock_uncertainty 0.35
 
 csim_design -clean
 csynth_design
@@ -24,3 +26,6 @@ export_design -format ip_catalog -description "Signal Engine" -version "1.0"
 
 close_project
 puts "=== compute_signals HLS flow complete ==="
+
+# Leave the tool instead of dropping into the interactive prompt (vitis_hls -f does not exit on its own on Windows)
+exit

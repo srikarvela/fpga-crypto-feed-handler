@@ -2,6 +2,7 @@
 #include <cassert>
 #include <cstdio>
 #include <cstring>
+#include <cstdint>
 
 // Pack a RawMsg into the 22-byte wire format (little-endian)
 static void encode_msg(ap_uint<8>* buf, char type, uint8_t side,
@@ -57,6 +58,18 @@ int main() {
     size = w.range(63, 32);
     assert(size == 0 && "delete msg should have size=0");
 
+    // The reciprocal-multiply divide must equal '/' for every input: boundaries + random
+    {
+        uint64_t xs[] = {0, 1, 99, 100, 101, 199, 200, 0xFFFFFFFFULL, 0x100000000ULL, 0x7FFFFFFFFFFFFFFFULL,
+                         0x8000000000000000ULL, 0xFFFFFFFFFFFFFFFFULL, 0xFFFFFFFFFFFFFF9CULL, 0xFFFFFFFFFFFFFF9BULL};
+        for (uint64_t x : xs) assert((uint64_t)parser_div100(x) == x / 100);
+        uint64_t st = 0x2545F4914F6CDD1DULL;
+        for (int i = 0; i < 200000; i++) {
+            st ^= st << 13; st ^= st >> 7; st ^= st << 17;
+            uint64_t x = (i % 2) ? st : (st >> (i % 60));
+            if ((uint64_t)parser_div100(x) != x / 100) { printf("div100 mismatch at %llu\n", (unsigned long long)x); return 1; }
+        }
+    }
     printf("parser_tb PASSED\n");
     return 0;
 }

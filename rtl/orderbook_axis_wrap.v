@@ -5,15 +5,17 @@
 // s_axis: the HLS feed_parser's out_msgs (128-bit AXI4-Stream carrying one packed
 //         NormMsg: {seq_num[96:65], side[64], size[63:32], price[31:0]}; bits 127:97 pad).
 // m_axis: the BookSnapshot as the HLS compute_signals IP's in_snap expects it. Vitis
-//         HLS lays hls::stream<BookSnap> out with C struct alignment (2016-bit TDATA):
+//         HLS lays hls::stream<BookSnap> out with C struct alignment (1984-bit TDATA):
 //           bids[i]: price @ 96*i, size @ 96*i+32, valid @ 96*i+64 (31 pad bits)   i = 0..9
 //           asks[i]: the same at 960 + 96*i
-//           imbalance @ 1920, midprice @ 1952, seq_num @ 1984
-//         (offsets read from compute_signals/solution1/impl/verilog/compute_signals.v).
+//           midprice @ 1920, seq_num @ 1952
+//         (offsets checked against compute_signals/solution1/impl/verilog/compute_signals.v).
 //
-// The snapshot is a registered one-cycle pulse (io_snap_valid) with no backpressure
-// in the Chisel design, so m_axis_tready is not consumed: if the downstream IP
-// stalls, that snapshot is dropped. No TLAST on either stream (the HLS IPs have none).
+// s_axis_tready is constant 1 (the book queues messages, see OrderBook.scala), which
+// lets Vivado remove the HLS parser's ready/clock-enable fan-out logic. The snapshot is
+// a registered one-cycle pulse (io_snap_valid) with no backpressure in the Chisel
+// design, so m_axis_tready is not consumed: if the downstream IP stalls, that snapshot
+// is dropped. No TLAST on either stream (the HLS IPs have none).
 `default_nettype none
 module orderbook_axis_wrap #(
     parameter DEPTH     = 10,
@@ -35,11 +37,14 @@ module orderbook_axis_wrap #(
     output wire          s_axis_tready,
 
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 m_axis TDATA" *)
-    output wire [2015:0] m_axis_tdata,
+    output wire [1983:0] m_axis_tdata,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 m_axis TVALID" *)
     output wire          m_axis_tvalid,
     (* X_INTERFACE_INFO = "xilinx.com:interface:axis:1.0 m_axis TREADY" *)
-    input  wire          m_axis_tready
+    input  wire          m_axis_tready,
+
+    // messages dropped because the input queue was full (never at the parser's 1-per-22-cycle rate)
+    output wire [15:0]   dropped
 );
 
   // Chisel reset is synchronous, active-high
@@ -52,7 +57,7 @@ module orderbook_axis_wrap #(
   wire [31:0] ask_price [0:9];
   wire [31:0] ask_size  [0:9];
   wire        ask_valid [0:9];
-  wire [31:0] imbalance, midprice, seq_num;
+  wire [31:0] midprice, seq_num;
   wire        snap_valid;
 
   OrderBook u_book (
@@ -61,6 +66,7 @@ module orderbook_axis_wrap #(
       .io_s_axis_tdata(s_axis_tdata[96:0]),
       .io_s_axis_tvalid(s_axis_tvalid),
       .io_s_axis_tready(s_axis_tready),
+      .io_dropped(dropped),
       .io_snap_bids_0_price(bid_price[0]), .io_snap_bids_0_size(bid_size[0]), .io_snap_bids_0_valid(bid_valid[0]),
       .io_snap_bids_1_price(bid_price[1]), .io_snap_bids_1_size(bid_size[1]), .io_snap_bids_1_valid(bid_valid[1]),
       .io_snap_bids_2_price(bid_price[2]), .io_snap_bids_2_size(bid_size[2]), .io_snap_bids_2_valid(bid_valid[2]),
@@ -81,7 +87,6 @@ module orderbook_axis_wrap #(
       .io_snap_asks_7_price(ask_price[7]), .io_snap_asks_7_size(ask_size[7]), .io_snap_asks_7_valid(ask_valid[7]),
       .io_snap_asks_8_price(ask_price[8]), .io_snap_asks_8_size(ask_size[8]), .io_snap_asks_8_valid(ask_valid[8]),
       .io_snap_asks_9_price(ask_price[9]), .io_snap_asks_9_size(ask_size[9]), .io_snap_asks_9_valid(ask_valid[9]),
-      .io_snap_imbalance(imbalance),
       .io_snap_midprice(midprice),
       .io_snap_seqNum(seq_num),
       .io_snap_valid(snap_valid)
@@ -98,9 +103,8 @@ module orderbook_axis_wrap #(
       assign m_axis_tdata[960 + 96*i + 64 +: 32] = {31'b0, ask_valid[i]};
     end
   endgenerate
-  assign m_axis_tdata[1951:1920] = imbalance;
-  assign m_axis_tdata[1983:1952] = midprice;
-  assign m_axis_tdata[2015:1984] = seq_num;
+  assign m_axis_tdata[1951:1920] = midprice;
+  assign m_axis_tdata[1983:1952] = seq_num;
   assign m_axis_tvalid = snap_valid;
 
 endmodule

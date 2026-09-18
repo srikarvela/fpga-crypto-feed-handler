@@ -10,7 +10,7 @@
 # `make chisel-verilog` has written chisel/generated/OrderBook.v.
 #
 # Outputs
-#   reports/impl/timing_summary.rpt, utilization.rpt      (committed)
+#   reports/impl/timing_summary.rpt (both clocks), utilization.rpt, clock_interaction.rpt  (committed)
 #   build/feed_handler_bd_wrapper.bit, feed_handler_bd.hwh (gitignored; copy both to the board)
 #
 # Tested target: PYNQ-Z2 (xc7z020clg400-1). The TUL board files are optional:
@@ -40,7 +40,7 @@ if {[catch {set_property board_part $board [current_project]} msg]} {
 set_property ip_repo_paths [list "$root/feed_parser/solution1/impl/ip" "$root/compute_signals/solution1/impl/ip"] [current_project]
 update_ip_catalog -rebuild
 
-add_files -norecurse [list "$root/chisel/generated/OrderBook.v" "$root/rtl/orderbook_axis_wrap.v"]
+add_files -norecurse [list "$root/chisel/generated/OrderBook.v" "$root/rtl/orderbook_axis_wrap.v" "$root/rtl/axis_drop_fifo.v"]
 add_files -fileset constrs_1 -norecurse "$root/constraints/pynq_z2.xdc"
 update_compile_order -fileset sources_1
 
@@ -53,6 +53,10 @@ make_wrapper -files [get_files $bd_name.bd] -top
 add_files -norecurse [glob $proj_dir/$proj_name.gen/sources_1/bd/$bd_name/hdl/${bd_name}_wrapper.v]
 set_property top ${bd_name}_wrapper [current_fileset]
 update_compile_order -fileset sources_1
+
+# Default synthesis/implementation strategies. Flow_PerfOptimized_high + retiming and
+# Performance_ExplorePostRoutePhysOpt were tried on this design and did not help (WNS
+# -0.518 ns vs -0.469 ns with the defaults; the residual paths are inside the HLS engine).
 
 launch_runs synth_1 -jobs 4
 wait_on_run synth_1
@@ -68,9 +72,15 @@ report_utilization -file "$rpt_dir/utilization.rpt"
 report_utilization -hierarchical -file "$rpt_dir/utilization_hierarchical.rpt"
 report_timing -setup -max_paths 10 -nworst 1 -file "$rpt_dir/setup_paths.rpt"
 report_clock_utilization -file "$rpt_dir/clock_utilization.rpt"
+report_clock_interaction -file "$rpt_dir/clock_interaction.rpt"
+foreach clk [get_clocks] {
+    set wns [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup -group $clk]]
+    set whs [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -hold  -group $clk]]
+    puts "Post-route clock $clk period [get_property PERIOD $clk] ns: WNS=$wns ns WHS=$whs ns"
+}
 set wns [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -setup]]
 set whs [get_property SLACK [get_timing_paths -max_paths 1 -nworst 1 -hold]]
-puts "Post-route at $FEED_CLK_MHZ MHz: WNS=$wns ns WHS=$whs ns"
+puts "Post-route overall: WNS=$wns ns WHS=$whs ns (pipeline clock $FEED_CLK_MHZ MHz, DMA clock 100 MHz)"
 
 file copy -force "$proj_dir/$proj_name.runs/impl_1/${bd_name}_wrapper.bit" "$out_dir/${bd_name}_wrapper.bit"
 file copy -force [glob $proj_dir/$proj_name.gen/sources_1/bd/$bd_name/hw_handoff/$bd_name.hwh] "$out_dir/$bd_name.hwh"

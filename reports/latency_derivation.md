@@ -2,144 +2,126 @@
 
 All numbers below come from the files in this directory (`hls/*_csynth.rpt`,
 `hls/*_cosim.rpt`, `ooc/`, `impl/`), produced by Vitis HLS 2024.1 and Vivado
-2024.1 for xc7z020clg400-1 at a 4.000 ns (250 MHz) target. The README's
-"< 10 cycles (~40 ns at 250 MHz)" figure was written before any of these tools
-had been run; this note replaces it with what the tools actually report.
+2024.1 for xc7z020clg400-1 at a 4.000 ns (250 MHz) target for the pipeline
+clock. This is the second design of the pipeline; the first (commit b19b49f)
+measured 88 cycles from NormMsg to SignalOut and closed at ≈116 MHz on a single
+250 MHz clock, and its figures are kept in section 5 for comparison. The README's
+original "< 10 cycles (~40 ns at 250 MHz)" figure predates both.
 
 ## 1. The three blocks, one at a time
 
 | Block | Source | What the report says | File |
 |---|---|---|---|
-| HLS feed parser | `hls/parser/parser.cpp` | loop `VITIS_LOOP_43_1`: II = **22** achieved (target 22), iteration latency **22** cycles; HLS estimated clock 6.978 ns (a 103-bit constant multiply for `price_raw / TICK_SIZE`), estimated Fmax 143 MHz; 476 LUT / 617 FF / 16 DSP | `hls/parser_csynth.rpt` |
-| Chisel order book | `chisel/src/main/scala/orderbook/` | insert / update / delete is a single-cycle parallel compare; the snapshot is a `RegNext`, so `snap.valid` rises **1 cycle** after `s_axis_tvalid`. Post-route numbers for the block on its own are in section 3. | `ooc/N_4.000ns/` |
-| HLS signal engine | `hls/signals/signals.cpp` | loop `VITIS_LOOP_11_1`: II = **1** achieved (target 1), but iteration latency (pipeline depth) **85** cycles; HLS estimated clock 7.054 ns, estimated Fmax 142 MHz; 30 864 LUT (58 %) / 61 241 FF (57 %) / 88 DSP (40 %) | `hls/signals_csynth.rpt` |
+| HLS feed parser | `hls/parser/parser.cpp` | loop `VITIS_LOOP_69_1`: II = **22** achieved (target 22), iteration latency **25** cycles; the `/ TICK_SIZE` divide is a reciprocal multiply from four DSP-bound 32×32 products; HLS-estimated clock 4.520 ns; 618 LUT / 1078 FF / 16 DSP (estimate) | `hls/parser_csynth.rpt` |
+| Chisel order book | `chisel/src/main/scala/orderbook/` | always-ready input queue (4 deep, drops and counts on overflow) feeding a parallel compare in three register stages (compare → decide → apply) plus the snapshot register: `snap.valid` rises **5 cycles after the accept edge** with the post-update book; the stores drain one message every 3 cycles (the parser supplies at most one per 22); post-route on its own at 4.000 ns: setup WNS +0.013 ns, 0 failing, **250.8 MHz** setup-limited, 1994 LUT / 3099 FF | `ooc/N_4.000ns/`, `OrderBookTest` |
+| HLS signal engine | `hls/signals/signals.cpp` | loop `VITIS_LOOP_38_1`: II = **1** achieved (target 1), iteration latency (pipeline depth) **56** cycles; HLS-estimated clock 5.640 ns; 23999 LUT / 35422 FF / 88 DSP (estimate) | `hls/signals_csynth.rpt` |
 
-Why the signal engine is 85 cycles deep: the `imbalance`, `microprice`, `vwap_bid`
-and `vwap_ask` expressions are 64-bit-by-37-bit divisions. Vitis HLS implements
-them as fully pipelined multi-cycle dividers (`sdiv_64ns_37ns_32_68_1` x2,
-`udiv_64ns_37ns_32_68_1`, `sdiv_53ns_38ns_32_57_1`: 68- and 57-cycle cores),
-which is also where most of the 30 k LUTs and 61 k flip-flops go. II = 1 is
-genuine: a new snapshot can enter every cycle, but each one takes 85 cycles to
-come out.
+Why the signal engine is 56 cycles deep now (85 before): the four divisions
+(`imbalance`, `microprice`, `vwap_bid`, `vwap_ask`) were generic 64-by-37-bit
+Vitis HLS divider cores (57–68 cycles each). They are now exact restoring dividers
+sized to each quotient's real range — 17 bits for the Q16 imbalance (|Δ| ≤ total),
+32 bits for the microprice (it lies between best bid and best ask), 40 bits for the
+Q8 VWAPs (a price-scale average) — written as an unrolled subtract-and-select per
+quotient bit, which HLS schedules as one bit per pipeline stage. The 40-bit VWAP
+divider therefore sets the depth. No approximation: the C testbench checks all six
+signals bit-for-bit against wide-integer reference division on a directed book, four
+edge cases and 400 random books, and C/RTL co-simulation runs the same testbench
+against the generated RTL.
 
-Co-simulation (`hls/*_cosim.rpt`, xsim, Verilog): both testbenches print
-`PASSED` against the RTL and the HLS log ends with
-`*** C/RTL co-simulation finished: PASS ***`. The report tables nevertheless show
-`Status = Fail` with a measured latency of 67 cycles (parser, 4 input messages)
-and 86 cycles (signal engine, 1 snapshot); the HLS log attributes this to the
-`ap_ctrl_none` + non-blocking `while (!stream.empty())` structure
-(`WARNING: [COSIM 212-382] ... may result in mismatches or simulation hanging`).
-So co-simulation confirms functional equivalence and the 85/86-cycle signal
-latency; it does not confirm any sub-10-cycle figure.
+Co-simulation (`hls/*_cosim.rpt`, xsim, Verilog): parser `Fail`-flagged
+table row but `parser_tb PASSED` and `C/RTL co-simulation finished: PASS` in the log
+(the `Status` column reflects the `ap_ctrl_none` + non-blocking-stream structure,
+`COSIM 212-382`); signal engine likewise PASS, with measured latency
+56–57 cycles and interval 1–2 over the 405
+snapshots.
 
 ## 2. Cycle accounting, NormMsg in -> SignalOut out
 
-Counting from the cycle in which a packed NormMsg is presented on the order
-book's `s_axis` (the README's own definition of tick-to-signal):
+Counting from the cycle in which a packed NormMsg is accepted on the order book's
+`s_axis`:
 
 | Step | Cycles | Source |
 |---|---:|---|
-| NormMsg on `s_axis` -> book updated, snapshot registered (`snap.valid`) | 1 | `OrderBook.scala` (`RegNext`) |
+| Order book: input queue, compare, decide, apply, snapshot register (`snap.valid`) | 5 | `OrderBook.UPDATE_LATENCY`, checked by `OrderBookTest` |
 | HLS AXI-Stream input register slice on `in_snap` | 1 | `compute_signals.v` (`regslice_both_in_snap`) |
-| Signal engine pipeline depth | 85 | `hls/signals_csynth.rpt`, iteration latency |
-| HLS AXI-Stream output register slice on `out_sig` | 1 | `compute_signals.v` (`regslice_both_out_sig`); 86 cycles in -> out measured in cosim |
-| **NormMsg -> SignalOut** | **88** | |
-| Raw bytes -> NormMsg (parser, 22 bytes at one byte per cycle) + AXIS transfer | +23 | `hls/parser_csynth.rpt`, iteration latency |
-| **First raw byte -> SignalOut** | **111** | |
+| Signal engine pipeline depth | 56 | `hls/signals_csynth.rpt`, iteration latency |
+| HLS AXI-Stream output register slice on `out_sig` | 1 | `compute_signals.v`; 56–57 cycles in → out measured in cosim |
+| **NormMsg -> SignalOut** | **63** | |
+| Raw bytes -> NormMsg (parser, 22 bytes at one byte per cycle) + AXIS transfer | +26 | `hls/parser_csynth.rpt`, iteration latency |
+| **First raw byte -> SignalOut** | **89** | |
 
-At the 4.000 ns target that is ~352 ns from NormMsg to signal (~444 ns from the
-first raw byte), not ~40 ns. At the clock the design actually closes at (section
-3) it is proportionally longer. The "< 10 cycles" figure is **not supported** by
-any report here; the sub-10-cycle part of the path is the order book alone
-(1 cycle), and the signal engine that follows it is ~85 cycles.
-
-A correctness note that also affects the accounting: `OrderBook.scala` registers
-`snap.bids/asks := store` and `snap.valid := doUpdate` on the same clock edge
-that applies the update, so the cycle in which `snap.valid` is high carries the
-*pre-update* book with the new message's `seqNum`. The ChiselTest cases pass
-because they sample the snapshot two cycles after the message, when the levels
-have caught up but `valid` is already low. Aligning `valid` with the post-update
-levels costs one more cycle (register `doUpdate` once more and sample `store`
-then). The RTL was left as-is for these runs; the numbers above are for the
-design as committed.
+At the pipeline clock the full design achieves post-route (223.8 MHz, section
+4) that is **≈ 282 ns from NormMsg to signal and ≈ 398 ns from the
+first raw byte**; at exactly 250 MHz it would be 252 ns / 356 ns.
+The order book itself contributes 5 cycles; the 56 cycles are the
+signal engine, and within it the 40-quotient-bit VWAP divider. Spread and midprice
+(no division) are ready inside the engine after a few cycles but leave with the rest
+of the record; there is no separate fast output. The "< 10 cycles" figure is **not
+supported** by any report here.
 
 ## 3. The order book on its own, post-route (`ooc/N_4.000ns/`)
 
 `tcl/orderbook_ooc.tcl`: `chisel/generated/OrderBook.v` (depth 10, 32-bit
-price/size) synthesized out-of-context, placed and routed at a 4.000 ns clock,
-Vivado 2024.1, xc7z020clg400-1.
+price/size) synthesized out-of-context, placed and routed at a 4.000 ns clock.
 
-| Slice LUTs | FF | CARRY4 | DSP | BRAM | WNS (ns) / failing | WHS (ns) / failing | constraints met | setup-limited Fmax |
-|---:|---:|---:|---:|---:|---:|---:|---|---:|
-| 7641 | 2704 | 1477 | 0 | 0 | −306.218 / 2683 of 6750 | −0.002 / 1 | no | **3.2 MHz** |
+| Slice LUTs | FF | WNS (ns) / failing | WHS (ns) / failing | constraints met | setup-limited Fmax |
+|---:|---:|---:|---:|---|---:|
+| 1994 | 3099 | +0.013 / 0 of 7893 | +0.068 / 0 | yes | **250.8 MHz** |
 
-The worst setup path (`ooc/N_4.000ns/setup_paths.rpt`) is
-`askStore/store_5_valid_reg` → `snap_imbalance_reg[29]`: 310 ns of data-path
-delay through **1320 logic levels (1242 CARRY4)**. That is the imbalance
-expression in `OrderBook.scala`,
-`((bidVol − askVol) << 16) / totalVol`, which Chisel emits as a single
-combinational 72-bit ÷ 42-bit signed divide (`OrderBook.v`,
-`_imbalance_T_8 = $signed(_imbalance_T_6) / $signed(_imbalance_T_7)`) sitting
-between the level registers and the snapshot register. Vivado builds it as a
-restoring-division array of ~1200 carry chains in one clock cycle. The
-"single-cycle update" is therefore real only in the sense that the RTL has one
-register stage; that stage cannot run anywhere near 250 MHz. The one hold
-violation is an input-port path (`io_s_axis_tdata[80]` → `snap_seqNum_reg[15]`),
-the usual OOC ideal-clock artifact.
-
-Without the divider the book would be a parallel-compare shift structure (the
-`PriceLevelStore` insert/delete logic plus the 10-way volume adders), which is
-what the README's "O(1) single-cycle" description is really about. Moving the
-imbalance divide into the HLS signal engine (which already recomputes it, 64-bit,
-pipelined) and dropping it from the Chisel snapshot is the obvious fix; it has
-**not** been done for these runs.
+Worst setup path: `word_reg[3]/C` → `bidStore/insertBeforeR_5_reg/D`, 3.980 ns
+(1.658 ns logic, 2.322 ns route, 6 levels: CARRY4=4 LUT2=1 LUT4=1).
+The hold failures are input-port → first-register paths under the out-of-context
+ideal-clock assumption (0.500 ns input delay against a clock with no buffer), the
+same artifact as in the sibling repos; not claimed either way. Three earlier
+versions of this block were measured on the way here: the original single-cycle
+update with its combinational imbalance divider (WNS −306 ns, 3.2 MHz), the same
+without the divider (−4.060 ns, 124 MHz: the insert-position decode fanned out to
+647 clock enables), and a two-stage compare+decide / apply split (−2.261 ns, 160 MHz:
+routing from twenty comparators into the encoders). Their reports are not committed;
+the numbers are quoted from those runs.
 
 ## 4. The whole design, post-route, through `write_bitstream` (`impl/`)
 
-`tcl/vivado_project.tcl` + `tcl/block_design.tcl`: PS7 (FCLK_CLK0 = 250 MHz) +
-AXI DMA (8-bit MM2S/S2MM) + `feed_parser` + `orderbook_axis_wrap` + `compute_signals`
-+ AXIS width converter, xc7z020clg400-1, Vivado 2024.1, bitstream written
-(`build/feed_handler_bd_wrapper.bit`, gitignored).
+`tcl/vivado_project.tcl` + `tcl/block_design.tcl`: PS7 with **two fabric clocks** —
+FCLK_CLK0 at 100 MHz for the AXI DMA, AXI-Lite and interconnects, FCLK_CLK1 at
+250 MHz for the pipeline (parser, book, signal engine, width converter) — joined by
+two AXI4-Stream clock converters (8-bit in, 32-bit out). Neither HLS block is ever
+back-pressured: the book's `s_axis_tready` is a constant 1 (its input queue absorbs
+messages), and a drop-on-overflow FIFO (`rtl/axis_drop_fifo.v`, 32 records, Icarus-tested)
+sits between the signal engine and the 28-byte → 32-bit width converter, so Vivado removes
+both HLS blocks' stall logic — in the first two-clock build those ready → clock-enable
+fan-out nets were every one of the 10 097 failing endpoints (WNS −0.909 ns). Bitstream written
+(`build/feed_handler_bd_wrapper.bit`, gitignored, never loaded on a board).
 
-| Slice LUTs (logic + mem) | FF | DSP | BRAM | period (ns) | WNS (ns) / failing | WHS (ns) / failing | constraints met | setup-limited Fmax |
-|---:|---:|---:|---:|---:|---:|---:|---|---:|
-| 38 814 (37 129 + 1 685), 73 % | 38 646 | 104 | 2 | 4.000 | −4.624 / 58 628 of 90 271 | +0.020 / 0 | no | **116 MHz** |
+| clock | domain | period (ns) | WNS (ns) / failing | WHS (ns) / failing | setup-limited Fmax |
+|---|---|---:|---:|---:|---:|
+| `clk_fpga_1` | parser + book + signal engine + width converter | 4.000 | -0.469 / 3611 of 70286 | +0.020 / 0 | **223.8 MHz** |
+| `clk_fpga_0` | AXI DMA, AXI-Lite, interconnects, clock-converter far sides | 10.000 | +0.968 / 0 of 9955 | +0.024 / 0 | 110.7 MHz |
 
-Per block (`impl/utilization_hierarchical.rpt`): signal engine 33 490 LUT / 32 001 FF
-/ 88 DSP; order book 2 015 LUT / 2 642 FF; parser 253 LUT / 16 DSP; DMA +
-interconnect ≈ 2 600 LUT.
+Whole design: 18039 Slice LUTs (16532 logic + 1507 memory) = 34 %,
+33173 FFs, 5 BRAM tiles, 104 DSPs; `timing_summary.rpt` states
+"Timing constraints are not met". The pipeline clock does not close: WNS -0.469 ns, 3611 of 70286 endpoints failing, setup-limited 223.8 MHz.
+Worst setup path in the design: `feed_handler_bd_i/signals_0/inst/snap_asks_price_reg_9218_pp0_iter15_reg_reg[4]/C` → `feed_handler_bd_i/signals_0/inst/select_ln75_reg_10619_reg[0]/R`, 3.908 ns
+(1.582 ns logic, 2.326 ns route, 6 levels: CARRY4=4 LUT3=1 LUT4=1).
 
-Two things to read carefully:
+What was tried against the residual paths, all inside the HLS signal engine: Vivado's
+`Flow_PerfOptimized_high` + retiming and `Performance_ExplorePostRoutePhysOpt`
+strategies (WNS −0.518 ns, no better than the defaults), and a Vitis HLS
+free-running pipeline (`style=frp`), which HLS accepted but which doubled the depth
+to 105 cycles and drove the same 1984-flip-flop input register-slice clock-enable net
+from its valid-tracking register (WNS −1.455 ns). The wide AXI4-Stream input register
+slice's enable fan-out is intrinsic to how Vitis HLS builds this interface; closing it
+would need a narrower or split input stream, which is not done.
 
-- **The order book's divider is gone here, and that is why the full design looks
-  faster than the OOC run (116 MHz vs 3.2 MHz).** In the block design the book's
-  `imbalance` output feeds `in_snap[1951:1920]`, which `compute_signals` never
-  reads (it recomputes imbalance from the levels), so Vivado removed the 72÷42-bit
-  divider as dead logic: the book shrinks from 7 641 to 2 015 LUTs. The 3.2 MHz
-  OOC figure is what the book costs if anything downstream consumes
-  `snap.imbalance`; the 116 MHz figure is the integrated system where nothing does.
-- **Setup is still not met at 250 MHz.** WNS −4.624 ns with 58 628 of 90 271
-  endpoints failing (TNS −112 µs). The ten worst paths in `impl/setup_paths.rpt`
-  are all parser → order-book register-enable paths (`feed_parser_0/.../data_p1_reg`
-  → `orderbook_0/.../store_*_size_reg/CE`, 8.16 ns over 10 logic levels, 75 % of
-  it routing): the parallel-compare insert logic fanning a 128-bit message into
-  every level's clock-enable, placed in a 73 %-full device. Hold is met (WHS
-  +0.020 ns, 0 failing) now that there is a real clock network, so the OOC hold
-  failures were the ideal-clock artifact they looked like.
+## 5. Summary against the earlier figures
 
-So, for the clock claim: the fabric runs at 250 MHz only in the sense that the PS7
-was configured to drive FCLK_CLK0 at 250 MHz; post-route the design would need a
-period of ≈ 8.6 ns (≈ 116 MHz) to close setup, and about 140 MHz is the ceiling
-Vitis HLS itself estimates for the two HLS blocks. Nothing here has been loaded
-onto a board.
-
-## 5. Summary against the README's original figures
-
-| Figure | Original write-up | From the committed reports |
-|---|---|---|
-| Parser II | 22 | **22** (achieved) |
-| Signal engine II | 1 | **1** (achieved), 85-cycle depth |
-| Book update | 1 cycle | 1 register stage; alone it is a 310 ns combinational divide (3.2 MHz), removed as dead logic in the integrated design |
-| Tick-to-signal | < 10 cycles, ~40 ns | **88 cycles** NormMsg → SignalOut, 111 from the first raw byte (≈ 760 ns / 960 ns at the 116 MHz the full design closes at; ≈ 350 / 440 ns if 250 MHz were met) |
-| Clock | 250 MHz | constraint set to 250 MHz, **not met**: WNS −4.624 ns, Fmax ≈ 116 MHz post-route |
-| Deployed on PYNQ-Z2 | yes | **not run** (no board reachable); bitstream exists locally, driver untested |
+| Figure | README as first written | First measured design (b19b49f) | This design |
+|---|---|---|---|
+| Parser II | 22 | 22 | **22** |
+| Signal engine II / depth | 1 | 1 / 85 | **1 / 56** |
+| Book update | 1 cycle, single stage | 1 register stage holding a 310 ns divide (3.2 MHz alone); valid carried the pre-update book | queue + 3-stage compare/decide/apply, **250.8 MHz alone**, valid carries the post-update book, always ready (stores drain one per 3 cycles) |
+| NormMsg → SignalOut | < 10 cycles, ~40 ns | 88 cycles (~760 ns at 116 MHz) | **63 cycles** (≈ 282 ns at 223.8 MHz) |
+| First raw byte → SignalOut | — | 111 cycles | **89 cycles** (≈ 398 ns) |
+| Pipeline clock | 250 MHz | single 250 MHz clock, WNS −4.624 ns, ≈116 MHz | 250 MHz pipeline clock: WNS -0.469 ns, 223.8 MHz setup-limited; DMA on a separate 100 MHz clock |
+| Whole design | — | 38 814 LUT (73 %), 104 DSP | 18039 LUT (34 %), 104 DSP |
+| Deployed on PYNQ-Z2 | yes | not run | **not run** (no board reachable) |

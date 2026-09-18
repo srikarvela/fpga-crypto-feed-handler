@@ -27,11 +27,13 @@ class Level(val priceBits: Int, val sizeBits: Int) extends Bundle {
   val valid = Bool()
 }
 
-// Output snapshot: top-N bid and ask levels + derived signals
+// Output snapshot: top-N bid and ask levels + midprice. Volume-derived signals
+// (imbalance, microprice, VWAP) are computed downstream by the HLS signal engine from
+// these levels; the book itself carries no divider (the earlier single-cycle
+// imbalance divide was a 310 ns combinational path).
 class BookSnapshot(val priceBits: Int, val sizeBits: Int, val depth: Int) extends Bundle {
   val bids      = Vec(depth, new Level(priceBits, sizeBits))
   val asks      = Vec(depth, new Level(priceBits, sizeBits))
-  val imbalance = SInt(32.W)   // (bidVol - askVol) / (bidVol + askVol) * 2^16, Q16
   val midprice  = UInt(priceBits.W) // (best_bid + best_ask) / 2 in ticks
   val seqNum    = UInt(32.W)
   val valid     = Bool()

@@ -17,6 +17,8 @@ add_files -tb hls/parser/parser_tb.cpp
 open_solution "solution1" -flow_target vivado
 set_part $part
 create_clock -period $period_ns -name default
+# Vitis HLS defaults to 27 % clock uncertainty; 0.35 ns leaves room for one carry chain + mux per stage.
+set_clock_uncertainty 0.35
 
 # C Simulation
 csim_design -clean
@@ -32,3 +34,6 @@ export_design -format ip_catalog -description "Crypto Feed Parser" -version "1.0
 
 close_project
 puts "=== feed_parser HLS flow complete ==="
+
+# Leave the tool instead of dropping into the interactive prompt (vitis_hls -f does not exit on its own on Windows)
+exit

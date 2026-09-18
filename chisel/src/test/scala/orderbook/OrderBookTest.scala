@@ -21,9 +21,10 @@ class OrderBookTest extends AnyFlatSpec with ChiselScalatestTester {
   def sendMsg(dut: OrderBook, price: Long, size: Long, side: Int, seq: Long): Unit = {
     dut.io.s_axis_tdata.poke(pack(price, size, side, seq).U)
     dut.io.s_axis_tvalid.poke(true.B)
-    dut.clock.step(1)
+    dut.io.s_axis_tready.expect(true.B)  // always ready
+    dut.clock.step(1)                    // accept into the queue
     dut.io.s_axis_tvalid.poke(false.B)
-    dut.clock.step(1) // let output register settle
+    dut.clock.step(OrderBook.UPDATE_LATENCY) // take, decide, apply, snapshot register
   }
 
   behavior of "OrderBook"
@@ -89,17 +90,31 @@ class OrderBookTest extends AnyFlatSpec with ChiselScalatestTester {
     }
   }
 
-  it should "compute non-zero imbalance with bid-heavy book" in {
+  it should "raise snap.valid OrderBook.UPDATE_LATENCY cycles after the accept edge, carrying the post-update book" in {
     test(new OrderBook(DEPTH, PRICE_BITS, SIZE_BITS)) { dut =>
       dut.io.s_axis_tvalid.poke(false.B)
       dut.clock.step(2)
 
-      sendMsg(dut, 100, 1000, 0, 1)  // bid: 1000
-      sendMsg(dut, 101,  200, 1, 2)  // ask:  200
-
-      // bidVol=1000, askVol=200, imbalance > 0 (bid-heavy)
-      val imb = dut.io.snap.imbalance.peek().litValue
-      assert(imb > 0, s"Expected positive imbalance, got $imb")
+      dut.io.s_axis_tdata.poke(pack(100, 50, 0, 7).U)
+      dut.io.s_axis_tvalid.poke(true.B)
+      dut.io.s_axis_tready.expect(true.B)
+      dut.clock.step(1)                         // edge 1: queued
+      dut.io.s_axis_tvalid.poke(false.B)
+      dut.io.s_axis_tready.expect(true.B)       // still ready: the queue absorbs
+      for (c <- 1 until OrderBook.UPDATE_LATENCY) {
+        dut.io.snap.valid.expect(false.B, s"snap.valid early at cycle $c")
+        dut.clock.step(1)
+      }
+      dut.io.snap.valid.expect(false.B)         // UPDATE_LATENCY - 1 edges after the accept edge: not yet
+      dut.clock.step(1)
+      dut.io.snap.valid.expect(true.B)          // exactly UPDATE_LATENCY edges after the accept edge
+      dut.io.snap.bids(0).price.expect(100.U)   // the message is already in the snapshot
+      dut.io.snap.bids(0).size.expect(50.U)
+      dut.io.snap.seqNum.expect(7.U)
+      dut.clock.step(1)
+      dut.io.snap.valid.expect(false.B)         // one-cycle pulse
+      dut.io.snap.bids(0).price.expect(100.U)   // data stays
+      dut.io.dropped.expect(0.U)
     }
   }
 
@@ -112,6 +127,45 @@ class OrderBookTest extends AnyFlatSpec with ChiselScalatestTester {
       sendMsg(dut, 102, 30, 1, 2)   // best ask = 102
 
       dut.io.snap.midprice.expect(101.U)  // (100+102)/2
+    }
+  }
+
+  it should "absorb QUEUE_DEPTH back-to-back messages (one per cycle) without dropping and apply them in order" in {
+    test(new OrderBook(DEPTH, PRICE_BITS, SIZE_BITS)) { dut =>
+      dut.io.s_axis_tvalid.poke(false.B)
+      dut.clock.step(2)
+      val msgs = Seq((100L, 10L, 0, 1L), (102L, 20L, 0, 2L), (101L, 30L, 0, 3L), (102L, 0L, 0, 4L))
+      for ((p, sz, side, seq) <- msgs) {
+        dut.io.s_axis_tdata.poke(pack(p, sz, side, seq).U)
+        dut.io.s_axis_tvalid.poke(true.B)
+        dut.io.s_axis_tready.expect(true.B)
+        dut.clock.step(1)
+      }
+      dut.io.s_axis_tvalid.poke(false.B)
+      dut.clock.step(3 * msgs.length + OrderBook.UPDATE_LATENCY)   // drain at one per 3 cycles
+      dut.io.dropped.expect(0.U)
+      dut.io.snap.bids(0).price.expect(101.U)   // 102 was deleted
+      dut.io.snap.bids(0).size.expect(30.U)
+      dut.io.snap.bids(1).price.expect(100.U)
+      dut.io.snap.bids(2).valid.expect(false.B)
+      dut.io.snap.seqNum.expect(4.U)
+    }
+  }
+
+  it should "count a dropped message when more than QUEUE_DEPTH arrive faster than the stores drain" in {
+    test(new OrderBook(DEPTH, PRICE_BITS, SIZE_BITS)) { dut =>
+      dut.io.s_axis_tvalid.poke(false.B)
+      dut.clock.step(2)
+      // Messages on consecutive cycles while the stores take one every third cycle: with
+      // QUEUE_DEPTH = 4 the queue is full after the 6th arrival and the 7th is dropped.
+      for (i <- 0 until OrderBook.QUEUE_DEPTH + 3) {
+        dut.io.s_axis_tdata.poke(pack(200 + i, 1, 0, 10 + i).U)
+        dut.io.s_axis_tvalid.poke(true.B)
+        dut.clock.step(1)
+      }
+      dut.io.s_axis_tvalid.poke(false.B)
+      dut.clock.step(3 * (OrderBook.QUEUE_DEPTH + 3) + OrderBook.UPDATE_LATENCY)
+      dut.io.dropped.expect(1.U)
     }
   }
 

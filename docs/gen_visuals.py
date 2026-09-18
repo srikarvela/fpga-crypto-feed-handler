@@ -32,11 +32,19 @@ def measured_clock():
     if not os.path.exists(path):
         return None
     text = open(path).read()
-    clk = re.search(r"^clk_fpga_0\s+\{\d+\.\d+\s+\d+\.\d+\}\s+([\d.]+)\s", text, re.M)
-    wns = re.search(r"^Setup\s*:\s*\d+\s+Failing Endpoints,\s+Worst Slack\s+(-?[\d.]+)ns", text, re.M)
+    # The pipeline runs on the PS7's FCLK_CLK1 (clk_fpga_1); FCLK_CLK0 is the 100 MHz DMA domain.
+    clk = re.search(r"^clk_fpga_1\s+\{\d+\.\d+\s+\d+\.\d+\}\s+([\d.]+)\s", text, re.M)
+    if not clk:
+        clk = re.search(r"^clk_fpga_0\s+\{\d+\.\d+\s+\d+\.\d+\}\s+([\d.]+)\s", text, re.M)
+    # per-clock WNS from the "Clock Summary"-adjacent intra-clock table: "clk_fpga_1  WNS  TNS ..."
+    per = re.search(r"^clk_fpga_1\s+(-?[\d.]+)\s+(-?[\d.]+)\s+\d+\s+\d+", text, re.M)
+    wns = per.group(1) if per else None
+    if wns is None:
+        m = re.search(r"^Setup\s*:\s*\d+\s+Failing Endpoints,\s+Worst Slack\s+(-?[\d.]+)ns", text, re.M)
+        wns = m.group(1) if m else None
     if not (clk and wns):
         return None
-    period, w = float(clk.group(1)), float(wns.group(1))
+    period, w = float(clk.group(1)), float(wns)
     return period, w, 1000.0 / (period - w)
 
 
@@ -338,7 +346,7 @@ def make_pipeline():
     stages = [
         (f"HLS Parser\n(II={parser[1]}, 22 B in)",          parser[0],  CYAN),
         ("parser out\nreg slice",                           1,          GREY),
-        ("book update + snap reg (1c)\n+ HLS in reg slice (1c)", 2,    GREEN),
+        ("book: queue + msg reg + compare/decide/apply\n+ snapshot (5c) + HLS in slice (1c)", 6, GREEN),
         (f"Signal engine\n(II={signals[1]}, depth {signals[0]})", signals[0], YELLOW),
         ("HLS out\nreg slice",                              1,          PURPLE),
     ]

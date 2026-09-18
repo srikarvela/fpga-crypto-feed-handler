@@ -4,15 +4,21 @@
 #
 #   ps7.M_AXI_GP0 --> axi_dma_0.S_AXI_LITE                   (DMA control registers)
 #   axi_dma_0.M_AXI_MM2S / M_AXI_S2MM --> ps7.S_AXI_HP0      (DDR access)
-#   axi_dma_0.M_AXIS_MM2S (8-bit) --> feed_parser_0.in_bytes  (22-byte raw messages, one byte per beat)
+#   axi_dma_0.M_AXIS_MM2S (8-bit) --> cc_in --> feed_parser_0.in_bytes  (22-byte raw messages, one byte per beat)
 #   feed_parser_0.out_msgs (128-bit) --> orderbook_0.s_axis   (packed NormMsg)
 #   orderbook_0.m_axis (BookSnap) --> signals_0.in_snap
-#   signals_0.out_sig --> axis_dwidth_converter_0 --> axi_dma_0.S_AXIS_S2MM (8-bit)
+#   signals_0.out_sig --> drop_fifo_0 (never back-pressures the engine) --> axis_dwidth_converter_0 (28 B -> 4 B)
+#                     --> cc_out --> axi_dma_0.S_AXIS_S2MM (32-bit)
 #
-# Everything runs on FCLK_CLK0 at the pipeline's 250 MHz target (FEED_CLK_MHZ).
+# Two clock domains: the PS side (AXI DMA, AXI-Lite, interconnects) on FCLK_CLK0 at
+# DMA_CLK_MHZ (100 MHz), the pipeline (parser, book, signals, width converter) on
+# FCLK_CLK1 at FEED_CLK_MHZ (250 MHz), joined by two AXI4-Stream clock converters.
+# The first version put everything on one 250 MHz clock, which the DMA and its
+# interconnects cannot make on a -1 device and which does not test the pipeline itself.
 
 set bd_name [current_bd_design]
 if {![info exists FEED_CLK_MHZ]} { set FEED_CLK_MHZ 250 }
+if {![info exists DMA_CLK_MHZ]}  { set DMA_CLK_MHZ 100 }
 
 # --- Processing system: PYNQ-Z2 preset if the board files are installed
 #     (otherwise PCW defaults), one fabric clock, GP0 master + HP0 slave for the DMA
@@ -24,13 +30,16 @@ set_property -dict [list \
     CONFIG.PCW_USE_M_AXI_GP0 {1} \
     CONFIG.PCW_USE_S_AXI_HP0 {1} \
     CONFIG.PCW_S_AXI_HP0_DATA_WIDTH {64} \
-    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ $FEED_CLK_MHZ \
+    CONFIG.PCW_FPGA0_PERIPHERAL_FREQMHZ $DMA_CLK_MHZ \
+    CONFIG.PCW_FPGA1_PERIPHERAL_FREQMHZ $FEED_CLK_MHZ \
     CONFIG.PCW_EN_CLK0_PORT {1} \
+    CONFIG.PCW_EN_CLK1_PORT {1} \
     CONFIG.PCW_EN_RST0_PORT {1} \
 ] [get_bd_cells ps7]
 
-# --- AXI DMA, simple (non-scatter-gather) mode. The parser consumes one byte
-#     per beat and the signal record is 25 bytes, so both streams are 8 bits wide.
+# --- AXI DMA, simple (non-scatter-gather) mode. The parser consumes one byte per beat
+#     (8-bit MM2S); the 28-byte signal record leaves as seven 32-bit beats (S2MM), which
+#     keeps the output side faster than the parser's one record per 22 cycles.
 create_bd_cell -type ip -vlnv xilinx.com:ip:axi_dma:7.1 axi_dma_0
 set_property -dict [list \
     CONFIG.c_include_sg {0} \
@@ -38,7 +47,7 @@ set_property -dict [list \
     CONFIG.c_include_mm2s {1} \
     CONFIG.c_include_s2mm {1} \
     CONFIG.c_m_axis_mm2s_tdata_width {8} \
-    CONFIG.c_s_axis_s2mm_tdata_width {8} \
+    CONFIG.c_s_axis_s2mm_tdata_width {32} \
     CONFIG.c_m_axi_mm2s_data_width {32} \
     CONFIG.c_m_axi_s2mm_data_width {32} \
     CONFIG.c_mm2s_burst_size {16} \
@@ -60,27 +69,41 @@ create_bd_cell -type ip -vlnv [hls_vlnv compute_signals] signals_0
 #     s_axis / m_axis AXI4-Stream interfaces around the generated OrderBook.v)
 create_bd_cell -type module -reference orderbook_axis_wrap orderbook_0
 
-# --- Signal record (25 bytes) -> 8-bit stream for the DMA
+# --- Drop-on-overflow FIFO behind the signal engine (rtl/axis_drop_fifo.v): its s_axis_tready is
+#     constant 1, so the HLS engine never stalls and its ready/clock-enable fan-out logic is removed
+create_bd_cell -type module -reference axis_drop_fifo drop_fifo_0
 set sig_bytes [get_property CONFIG.TDATA_NUM_BYTES [get_bd_intf_pins signals_0/out_sig]]
+set_property -dict [list CONFIG.WIDTH [expr {8 * $sig_bytes}] CONFIG.DEPTH {32} CONFIG.AW {5}] [get_bd_cells drop_fifo_0]
+
+# --- Signal record (28 bytes) -> 32-bit stream for the DMA (7 beats per record)
 create_bd_cell -type ip -vlnv xilinx.com:ip:axis_dwidth_converter:1.1 axis_dwidth_converter_0
 set_property -dict [list \
     CONFIG.S_TDATA_NUM_BYTES $sig_bytes \
-    CONFIG.M_TDATA_NUM_BYTES {1} \
+    CONFIG.M_TDATA_NUM_BYTES {4} \
     CONFIG.HAS_TLAST {0} \
     CONFIG.HAS_TKEEP {0} \
     CONFIG.HAS_TSTRB {0} \
 ] [get_bd_cells axis_dwidth_converter_0]
 
+# --- Clock-domain crossings on the two 8-bit streams (DMA domain <-> pipeline domain)
+foreach {cc bytes} {cc_in 1 cc_out 4} {
+    create_bd_cell -type ip -vlnv xilinx.com:ip:axis_clock_converter:1.1 $cc
+    set_property -dict [list CONFIG.TDATA_NUM_BYTES $bytes CONFIG.HAS_TLAST {0} CONFIG.HAS_TKEEP {0} CONFIG.HAS_TSTRB {0}] [get_bd_cells $cc]
+}
+
 # --- Streams
-connect_bd_intf_net [get_bd_intf_pins axi_dma_0/M_AXIS_MM2S]   [get_bd_intf_pins feed_parser_0/in_bytes]
+connect_bd_intf_net [get_bd_intf_pins axi_dma_0/M_AXIS_MM2S]   [get_bd_intf_pins cc_in/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins cc_in/M_AXIS]            [get_bd_intf_pins feed_parser_0/in_bytes]
 connect_bd_intf_net [get_bd_intf_pins feed_parser_0/out_msgs]  [get_bd_intf_pins orderbook_0/s_axis]
 connect_bd_intf_net [get_bd_intf_pins orderbook_0/m_axis]      [get_bd_intf_pins signals_0/in_snap]
-connect_bd_intf_net [get_bd_intf_pins signals_0/out_sig]       [get_bd_intf_pins axis_dwidth_converter_0/S_AXIS]
-connect_bd_intf_net [get_bd_intf_pins axis_dwidth_converter_0/M_AXIS] [get_bd_intf_pins axi_dma_0/S_AXIS_S2MM]
+connect_bd_intf_net [get_bd_intf_pins signals_0/out_sig]       [get_bd_intf_pins drop_fifo_0/s_axis]
+connect_bd_intf_net [get_bd_intf_pins drop_fifo_0/m_axis]      [get_bd_intf_pins axis_dwidth_converter_0/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins axis_dwidth_converter_0/M_AXIS] [get_bd_intf_pins cc_out/S_AXIS]
+connect_bd_intf_net [get_bd_intf_pins cc_out/M_AXIS]           [get_bd_intf_pins axi_dma_0/S_AXIS_S2MM]
 
 # --- Memory-mapped side: the automation adds the interconnects and the
-#     processor system reset block, all on FCLK_CLK0
-set clk "/ps7/FCLK_CLK0 ($FEED_CLK_MHZ MHz)"
+#     processor system reset block, all on FCLK_CLK0 (the DMA domain)
+set clk "/ps7/FCLK_CLK0 ($DMA_CLK_MHZ MHz)"
 apply_bd_automation -rule xilinx.com:bd_rule:axi4 \
     -config [list Clk_master $clk Clk_slave {Auto} Clk_xbar {Auto} \
              Master {/ps7/M_AXI_GP0} Slave {/axi_dma_0/S_AXI_LITE} intc_ip {New AXI Interconnect} master_apm {0}] \
@@ -94,17 +117,29 @@ apply_bd_automation -rule xilinx.com:bd_rule:axi4 \
              Master {/axi_dma_0/M_AXI_S2MM} Slave {/ps7/S_AXI_HP0} intc_ip {/axi_mem_intercon} master_apm {0}] \
     [get_bd_intf_pins axi_dma_0/M_AXI_S2MM]
 
-# --- Clock and reset for the pipeline
+# --- DMA-domain reset (made by the automation) and a second reset block for the pipeline clock
 set psr [get_bd_cells -hierarchical -filter {VLNV =~ "xilinx.com:ip:proc_sys_reset:*"}]
 if {[llength $psr] == 0} { error "no proc_sys_reset block was created by the automation" }
-set arstn [get_bd_pins [lindex $psr 0]/peripheral_aresetn]
-foreach c {feed_parser_0/ap_clk orderbook_0/aclk signals_0/ap_clk axis_dwidth_converter_0/aclk} {
-    connect_bd_net [get_bd_pins ps7/FCLK_CLK0] [get_bd_pins $c]
+set arstn_dma [get_bd_pins [lindex $psr 0]/peripheral_aresetn]
+
+create_bd_cell -type ip -vlnv xilinx.com:ip:proc_sys_reset:5.0 rst_pipeline
+connect_bd_net [get_bd_pins ps7/FCLK_CLK1]     [get_bd_pins rst_pipeline/slowest_sync_clk]
+connect_bd_net [get_bd_pins ps7/FCLK_RESET0_N] [get_bd_pins rst_pipeline/ext_reset_in]
+set arstn_pipe [get_bd_pins rst_pipeline/peripheral_aresetn]
+
+# --- Pipeline domain: FCLK_CLK1
+foreach c {feed_parser_0/ap_clk orderbook_0/aclk signals_0/ap_clk drop_fifo_0/aclk axis_dwidth_converter_0/aclk cc_in/m_axis_aclk cc_out/s_axis_aclk} {
+    connect_bd_net [get_bd_pins ps7/FCLK_CLK1] [get_bd_pins $c]
 }
-foreach r {feed_parser_0/ap_rst_n orderbook_0/aresetn signals_0/ap_rst_n axis_dwidth_converter_0/aresetn} {
-    connect_bd_net $arstn [get_bd_pins $r]
+foreach r {feed_parser_0/ap_rst_n orderbook_0/aresetn signals_0/ap_rst_n drop_fifo_0/aresetn axis_dwidth_converter_0/aresetn cc_in/m_axis_aresetn cc_out/s_axis_aresetn} {
+    connect_bd_net $arstn_pipe [get_bd_pins $r]
 }
+# --- DMA domain side of the two clock converters: FCLK_CLK0
+connect_bd_net [get_bd_pins ps7/FCLK_CLK0] [get_bd_pins cc_in/s_axis_aclk]
+connect_bd_net [get_bd_pins ps7/FCLK_CLK0] [get_bd_pins cc_out/m_axis_aclk]
+connect_bd_net $arstn_dma [get_bd_pins cc_in/s_axis_aresetn]
+connect_bd_net $arstn_dma [get_bd_pins cc_out/m_axis_aresetn]
 
 assign_bd_address
 regenerate_bd_layout
-puts "Block design $bd_name wired: ps7 <-> axi_dma_0 <-> feed_parser_0 -> orderbook_0 -> signals_0 -> dwidth -> axi_dma_0 @ $FEED_CLK_MHZ MHz"
+puts "Block design $bd_name wired: ps7 <-> axi_dma_0 @ $DMA_CLK_MHZ MHz <-> cc_in -> feed_parser_0 -> orderbook_0 -> signals_0 -> dwidth -> cc_out @ $FEED_CLK_MHZ MHz"
